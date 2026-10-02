@@ -12,6 +12,16 @@ import java.util.LinkedHashMap;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<ApiError> duplicateEmail(DuplicateEmailException exception) {
+        return ResponseEntity.status(409).body(ApiError.of(409, "EMAIL_ALREADY_EXISTS", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidRegistrationException.class)
+    public ResponseEntity<ApiError> invalidRegistration(InvalidRegistrationException exception) {
+        return ResponseEntity.badRequest().body(ApiError.of(400, "INVALID_REGISTRATION", exception.getMessage()));
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiError> credentials(BadCredentialsException exception) {
         return ResponseEntity.status(401).body(ApiError.of(401, "INVALID_CREDENTIALS", "Invalid email or password"));

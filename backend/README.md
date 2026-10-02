@@ -52,8 +52,26 @@ The backend follows controller, service, repository and entity layers. DTOs defi
 
 `GET /api/v1/auth/me` returns the user identity and a numeric `roleId`. JWT claims also use numeric `roleId`; role names are resolved internally for authorization. Internal roles are `ADMINISTRATOR`, `SUPPORT`, `HOST` and `GUEST`. Database tables, columns and role codes use English names. Role-specific route prefixes are `/api/v1/admin/`, `/api/v1/support/`, `/api/v1/host/` and `/api/v1/guest/`. Account status and role are checked against the database on each authenticated request. Inactive accounts and invalid credentials return the same 401 response.
 
-Set `JWT_SECRET` in `.env` to a random secret of at least 32 bytes. Tokens expire after 30 minutes. Swagger supports the bearer token through Authorize. No refresh-token or registration endpoint is included in HU-01.
+Set `JWT_SECRET` in `.env` to a random secret of at least 32 bytes. Tokens expire after 30 minutes. Swagger supports the bearer token through Authorize. No refresh-token endpoint is included. Registration is implemented separately in HU-02.
 
-Flyway applies `V1__create_authentication_tables.sql` on startup. It creates `roles` and `users` and seeds only the four roles. No default users or passwords are created. An existing active user with a BCrypt password hash is required to log in. Registration belongs to HU-02.
+Flyway applies `V1__create_authentication_tables.sql` on startup. It creates `roles` and `users` and seeds only the four roles. No default users or passwords are created. An existing active user with a BCrypt password hash is required to log in. Accounts can be created through HU-02 registration.
 
 The integration tests create isolated accounts in H2. They cover all four roles, invalid credentials, inactive accounts, input validation, malformed requests, missing/tampered/expired tokens, administrative route restrictions and invalidation after account or role changes. PostgreSQL migrations must also be verified against the target database before deployment.
+
+## HU-02 registration
+
+`POST /api/v1/auth/register/guest` registers a guest and `POST /api/v1/auth/register/host` registers a host. Both endpoints are public and accept `email`, `password`, `firstName`, `lastName` and optional `phone`. The controller selects the role; the request has no `roleId`. Both account types are stored in `users` with the corresponding foreign key to `roles`. Internal roles cannot be assigned through public registration.
+
+Passwords must contain at least 8 characters and fit within BCrypt’s 72-byte UTF-8 limit. Email is normalized to lowercase, names and phone are trimmed, and the account is active on creation. The database unique email constraint protects concurrent registrations as well as the initial duplicate check.
+
+A successful request returns HTTP 201 with `id`, `email`, `firstName`, `lastName` and `roleId`. The user then signs in through `/api/v1/auth/login`. Duplicate email returns HTTP 409; invalid fields or a forbidden role return HTTP 400. No password hash or access token is returned by registration. No database migration is required because the existing users schema supports this flow.
+
+```json
+{
+  "email": "guest@example.com",
+  "password": "YourPassword123!",
+  "firstName": "Alex",
+  "lastName": "Smith",
+  "phone": "+51999999999"
+}
+```
