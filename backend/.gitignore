@@ -58,8 +58,7 @@ replay_pid*
 target/
 !.mvn/wrapper/maven-wrapper.jar
 
-# Maven wrapper
-.mvn/wrapper/maven-wrapper.properties
+# Maven wrapper configuration must be versioned
 
 
 # =========================

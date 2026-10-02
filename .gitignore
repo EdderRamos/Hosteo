@@ -1,1 +1,42 @@
+# Environment variables and local credentials
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+application-local.yaml
+secrets.properties
+secrets.yml
+secrets.yaml
+
+# Dependencies and generated output
+node_modules/
+/backend/target/
+/frontend/dist/
+/frontend/build/
+/frontend/.vite/
+coverage/
+*.tsbuildinfo
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+hs_err_pid*
+replay_pid*
+
+# Local editor and operating system files
+.idea/
+.vscode/
+*.iml
 .DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local cloud credentials
+.aws/
+
+development/
