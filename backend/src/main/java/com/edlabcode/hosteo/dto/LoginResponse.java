@@ -1,4 +1,4 @@
 package com.edlabcode.hosteo.dto;
 
-public record LoginResponse(String accessToken) {
+public record LoginResponse(String accessToken, LoginUserResponse user) {
 }

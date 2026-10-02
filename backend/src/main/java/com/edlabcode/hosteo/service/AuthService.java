@@ -31,7 +31,7 @@ public class AuthService {
         }
         var account = user.get();
         account.setLastLoginAt(Instant.now());
-        return new LoginResponse(tokens.issue(account));
+        return new LoginResponse(tokens.issue(account), LoginUserResponse.from(account));
     }
 
     @Transactional(readOnly = true)

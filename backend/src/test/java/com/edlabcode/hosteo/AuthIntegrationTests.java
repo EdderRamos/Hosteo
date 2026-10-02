@@ -66,7 +66,10 @@ class AuthIntegrationTests {
             var user = createUser(role.name().toLowerCase() + "@hosteo.test", role, true);
             var response = login(user.getEmail().toUpperCase(), "ValidPassword123!");
             assertEquals(200, response.statusCode());
-            assertEquals(1, json(response).size());
+            assertEquals(2, json(response).size());
+            assertEquals(user.getId().longValue(), json(response).get("user").get("id").asLong());
+            assertFalse(json(response).get("user").has("role"));
+            assertEquals(user.getRole().getId().longValue(), json(response).get("user").get("roleId").asLong());
             assertTrue(json(response).has("accessToken"));
             String token = json(response).get("accessToken").asText();
             var me = request("GET", "/api/v1/auth/me", null, token);
