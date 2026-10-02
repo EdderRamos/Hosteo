@@ -28,7 +28,7 @@ export DB_PASSWORD='tu-contraseña-local'
 ./mvnw spring-boot:run
 ```
 
-Ejecutar desde `backend/` con JDK 21 o superior. Hibernate valida el esquema (`ddl-auto=validate`); no crea ni modifica tablas automáticamente. Antes de incorporar entidades se deberá versionar el esquema correspondiente.
+Ejecutar desde `backend/` con JDK 21 o superior. El `.env` local usa `DB_DDL_AUTO=create`: Hibernate recrea las tablas mapeadas en cada arranque y elimina sus datos. `BOOTSTRAP_ROLES=true` carga los cuatro roles. La configuración predeterminada sin estas variables valida el esquema existente.
 
 - Swagger UI: http://localhost:8080/swagger-ui.html
 - OpenAPI JSON: http://localhost:8080/v3/api-docs
@@ -54,9 +54,9 @@ The backend follows controller, service, repository and entity layers. DTOs defi
 
 Set `JWT_SECRET` in `.env` to a random secret of at least 32 bytes. Tokens expire after 30 minutes. Swagger supports the bearer token through Authorize. No refresh-token endpoint is included. Registration is implemented separately in HU-02.
 
-Flyway applies `V1__create_authentication_tables.sql` on startup. It creates `roles` and `users` and seeds only the four roles. No default users or passwords are created. An existing active user with a BCrypt password hash is required to log in. Accounts can be created through HU-02 registration.
+Hibernate manages the development schema through `DB_DDL_AUTO=create`. Every startup recreates mapped tables and deletes their data. `BOOTSTRAP_ROLES=true` seeds the four roles without creating accounts. Use `DB_DDL_AUTO=update` to preserve development data across ordinary restarts. Defaults outside local configuration are `validate` and role bootstrap disabled. No Flyway dependency or migrations remain.
 
-The integration tests create isolated accounts in H2. They cover all four roles, invalid credentials, inactive accounts, input validation, malformed requests, missing/tampered/expired tokens, administrative route restrictions and invalidation after account or role changes. PostgreSQL migrations must also be verified against the target database before deployment.
+The integration tests create isolated accounts in H2. They cover all four roles, invalid credentials, inactive accounts, input validation, malformed requests, missing/tampered/expired tokens, administrative route restrictions and invalidation after account or role changes. Schema changes must be reviewed before production deployment.
 
 ## HU-02 registration
 
@@ -64,7 +64,7 @@ The integration tests create isolated accounts in H2. They cover all four roles,
 
 Passwords must contain at least 8 characters and fit within BCrypt’s 72-byte UTF-8 limit. Email is normalized to lowercase, names and phone are trimmed, and the account is active on creation. The database unique email constraint protects concurrent registrations as well as the initial duplicate check.
 
-A successful request returns HTTP 201 with `id`, `email`, `firstName`, `lastName` and `roleId`. The user then signs in through `/api/v1/auth/login`. Duplicate email returns HTTP 409; invalid fields or a forbidden role return HTTP 400. No password hash or access token is returned by registration. Migration V2 adds identity document fields and a composite unique constraint. Existing users retain null document fields; all new public registrations require both fields.
+A successful request returns HTTP 201 with `id`, `email`, `firstName`, `lastName` and `roleId`. The user then signs in through `/api/v1/auth/login`. Duplicate email returns HTTP 409; invalid fields or a forbidden role return HTTP 400. No password hash or access token is returned by registration. Hibernate creates identity document fields and a composite unique constraint from the entities. Existing users retain null document fields; all new public registrations require both fields.
 
 ```json
 {
