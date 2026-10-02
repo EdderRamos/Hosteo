@@ -12,6 +12,11 @@ import java.util.LinkedHashMap;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(DuplicateDocumentException.class)
+    public ResponseEntity<ApiError> duplicateDocument(DuplicateDocumentException exception) {
+        return ResponseEntity.status(409).body(ApiError.of(409, "DOCUMENT_ALREADY_EXISTS", exception.getMessage()));
+    }
+
     @ExceptionHandler(DuplicateEmailException.class)
     public ResponseEntity<ApiError> duplicateEmail(DuplicateEmailException exception) {
         return ResponseEntity.status(409).body(ApiError.of(409, "EMAIL_ALREADY_EXISTS", exception.getMessage()));

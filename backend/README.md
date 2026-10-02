@@ -60,11 +60,11 @@ The integration tests create isolated accounts in H2. They cover all four roles,
 
 ## HU-02 registration
 
-`POST /api/v1/auth/register/guest` registers a guest and `POST /api/v1/auth/register/host` registers a host. Both endpoints are public and accept `email`, `password`, `firstName`, `lastName` and optional `phone`. The controller selects the role; the request has no `roleId`. Both account types are stored in `users` with the corresponding foreign key to `roles`. Internal roles cannot be assigned through public registration.
+`POST /api/v1/auth/register/guest` registers a guest and `POST /api/v1/auth/register/host` registers a host. Both endpoints are public and accept `email`, `password`, `firstName`, `lastName` optional `phone`, and required `documentType` and `documentNumber`. The controller selects the role; the request has no `roleId`. Both account types are stored in `users` with the corresponding foreign key to `roles`. Internal roles cannot be assigned through public registration.
 
 Passwords must contain at least 8 characters and fit within BCrypt’s 72-byte UTF-8 limit. Email is normalized to lowercase, names and phone are trimmed, and the account is active on creation. The database unique email constraint protects concurrent registrations as well as the initial duplicate check.
 
-A successful request returns HTTP 201 with `id`, `email`, `firstName`, `lastName` and `roleId`. The user then signs in through `/api/v1/auth/login`. Duplicate email returns HTTP 409; invalid fields or a forbidden role return HTTP 400. No password hash or access token is returned by registration. No database migration is required because the existing users schema supports this flow.
+A successful request returns HTTP 201 with `id`, `email`, `firstName`, `lastName` and `roleId`. The user then signs in through `/api/v1/auth/login`. Duplicate email returns HTTP 409; invalid fields or a forbidden role return HTTP 400. No password hash or access token is returned by registration. Migration V2 adds identity document fields and a composite unique constraint. Existing users retain null document fields; all new public registrations require both fields.
 
 ```json
 {
@@ -72,6 +72,10 @@ A successful request returns HTTP 201 with `id`, `email`, `firstName`, `lastName
   "password": "YourPassword123!",
   "firstName": "Alex",
   "lastName": "Smith",
-  "phone": "+51999999999"
+  "phone": "+51999999999",
+  "documentType": "DNI",
+  "documentNumber": "12345678"
 }
 ```
+
+Document types are `DNI`, `FOREIGN_RESIDENT_CARD` and `PASSPORT`. DNI requires 8 digits. Other types accept 1–30 ASCII letters or digits as an initial application policy. Document numbers are stored in uppercase as strings to preserve leading zeros. Duplicate type/number pairs return 409 with `DOCUMENT_ALREADY_EXISTS`, including concurrent submissions. These fields are not returned in authentication responses. Format checks do not verify identity with an external registry.
