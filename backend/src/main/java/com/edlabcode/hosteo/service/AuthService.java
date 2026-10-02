@@ -1,6 +1,5 @@
 package com.edlabcode.hosteo.service;
 
-import com.edlabcode.hosteo.config.JwtProperties;
 import com.edlabcode.hosteo.dto.*;
 import com.edlabcode.hosteo.entity.User;
 import com.edlabcode.hosteo.repository.UserRepository;
@@ -19,7 +18,6 @@ public class AuthService {
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokens;
-    private final JwtProperties properties;
     private final String dummyPasswordHash;
 
     @Transactional
@@ -33,8 +31,7 @@ public class AuthService {
         }
         var account = user.get();
         account.setLastLoginAt(Instant.now());
-        return new LoginResponse(tokens.issue(account), "Bearer", properties.ttl().toSeconds(),
-                UserResponse.from(account));
+        return new LoginResponse(tokens.issue(account));
     }
 
     @Transactional(readOnly = true)

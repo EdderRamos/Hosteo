@@ -29,7 +29,8 @@ public class AccountJwtConverter implements Converter<Jwt, AbstractAuthenticatio
         var user = users.findById(id).filter(User::isActive)
                 .orElseThrow(() -> new InvalidBearerTokenException("Invalid authentication"));
         String role = user.getRole().getCode().name();
-        if (!role.equals(jwt.getClaimAsString("role"))) {
+        Object roleId = jwt.getClaim("roleId");
+        if (!(roleId instanceof Number number) || number.longValue() != user.getRole().getId()) {
             throw new InvalidBearerTokenException("Invalid authentication");
         }
         return new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_" + role)));

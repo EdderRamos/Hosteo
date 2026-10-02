@@ -66,13 +66,15 @@ class AuthIntegrationTests {
             var user = createUser(role.name().toLowerCase() + "@hosteo.test", role, true);
             var response = login(user.getEmail().toUpperCase(), "ValidPassword123!");
             assertEquals(200, response.statusCode());
-            assertEquals("Bearer", json(response).get("tokenType").asText());
-            assertEquals(role.name(), json(response).get("user").get("role").asText());
+            assertEquals(1, json(response).size());
+            assertTrue(json(response).has("accessToken"));
             String token = json(response).get("accessToken").asText();
             var me = request("GET", "/api/v1/auth/me", null, token);
             assertEquals(200, me.statusCode());
             assertEquals(user.getId().longValue(), json(me).get("id").asLong());
             assertFalse(me.body().contains("password"));
+            assertEquals(user.getRole().getId().longValue(), json(me).get("roleId").asLong());
+            assertFalse(json(me).has("role"));
             assertNotNull(users.findById(user.getId()).orElseThrow().getLastLoginAt());
             assertEquals("no-store", response.headers().firstValue("cache-control").orElseThrow());
         }
@@ -112,7 +114,7 @@ class AuthIntegrationTests {
         Instant now = Instant.now();
         var claims = JwtClaimsSet.builder().subject(user.getId().toString())
                 .issuer(properties.issuer()).issuedAt(now.minusSeconds(120))
-                .expiresAt(now.minusSeconds(60)).claim("role", "GUEST").build();
+                .expiresAt(now.minusSeconds(60)).claim("roleId", user.getRole().getId()).build();
         String expired = encoder.encode(JwtEncoderParameters.from(
                 JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
         assertEquals(401, request("GET", "/api/v1/auth/me", null, expired).statusCode());

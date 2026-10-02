@@ -23,7 +23,7 @@ public class TokenService {
                 .issuedAt(now)
                 .expiresAt(now.plus(properties.ttl()))
                 .id(UUID.randomUUID().toString())
-                .claim("role", user.getRole().getCode().name())
+                .claim("roleId", user.getRole().getId())
                 .build();
         return encoder.encode(JwtEncoderParameters.from(
                 JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
