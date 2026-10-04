@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router'
 import { SiteLayout } from './components/SiteLayout'
-import { ForgotPage, RegisterPage } from './pages/AuthPages'
+import { ForgotPage } from './pages/AuthPages'
+import { RegisterPage } from './pages/RegisterPage'
 import { LoginPage } from './pages/LoginPage'
 import { HomePage } from './pages/HomePage'
 

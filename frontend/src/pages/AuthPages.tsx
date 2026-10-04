@@ -1,10 +1,7 @@
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router'
-import propertyBarranco from '../assets/property-barranco.jpg'
 import propertySanIsidro from '../assets/property-san-isidro.jpg'
 import { Brand } from '../components/Brand'
-
-type FormErrors = Record<string, string>
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -109,78 +106,6 @@ function FormField({ label, value, onChange, type = 'text', placeholder, autoCom
 
 function AuthSubmit({ children }: { children: ReactNode }) {
   return <button className="auth-submit" type="submit">{children}</button>
-}
-
-function FormStatus({ children }: { children: string }) {
-  return children ? <p className="form-status" role="status">✓ {children}</p> : null
-}
-
-export function RegisterPage() {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmation, setConfirmation] = useState('')
-  const [terms, setTerms] = useState(false)
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [status, setStatus] = useState('')
-
-  function updateField(field: string, value: string, setter: (nextValue: string) => void) {
-    setter(value)
-    setErrors((current) => ({ ...current, [field]: '' }))
-    setStatus('')
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const nextErrors = {
-      name: name.trim() ? '' : 'Ingresa tu nombre completo',
-      email: emailError(email),
-      password: !password ? 'Crea una contraseña' : password.length < 8 ? 'Usa al menos 8 caracteres' : '',
-      confirmation: !confirmation ? 'Confirma tu contraseña' : confirmation !== password ? 'Las contraseñas no coinciden' : '',
-      terms: terms ? '' : 'Debes aceptar los términos para continuar',
-    }
-    const visibleErrors = Object.fromEntries(Object.entries(nextErrors).filter(([, message]) => message))
-    setErrors(visibleErrors)
-    setStatus(Object.keys(visibleErrors).length ? '' : 'Datos verificados correctamente.')
-  }
-
-  return (
-    <AuthFrame
-      image={propertyBarranco}
-      imageAlt="Dormitorio cálido de un alojamiento"
-      tagline="Alojamientos cuidados para viajeros que aprecian los detalles."
-    >
-      <AuthHeading title="Crea tu cuenta" description="Únete a Hosteo y organiza tu próxima estadía en Lima." />
-      <form className="auth-form auth-form--register" onSubmit={handleSubmit} noValidate>
-        <div className="auth-form__fields auth-form__fields--compact">
-          <FormField label="Nombre completo" placeholder="María García" value={name} onChange={(value) => updateField('name', value, setName)} error={errors.name} autoComplete="name" />
-          <FormField label="Correo electrónico" type="email" placeholder="tu@correo.com" value={email} onChange={(value) => updateField('email', value, setEmail)} error={errors.email} autoComplete="email" />
-          <FormField label="Contraseña" type="password" placeholder="Mínimo 8 caracteres" value={password} onChange={(value) => updateField('password', value, setPassword)} error={errors.password} autoComplete="new-password" />
-          <FormField label="Confirmar contraseña" type="password" placeholder="Repite tu contraseña" value={confirmation} onChange={(value) => updateField('confirmation', value, setConfirmation)} error={errors.confirmation} autoComplete="new-password" />
-        </div>
-        <div className="terms-field">
-          <label className="checkbox-field">
-            <input
-              type="checkbox"
-              checked={terms}
-              onChange={(event) => {
-                setTerms(event.target.checked)
-                setErrors((current) => ({ ...current, terms: '' }))
-                setStatus('')
-              }}
-              aria-invalid={Boolean(errors.terms)}
-              aria-describedby={errors.terms ? 'terms-error' : undefined}
-            />
-            <span>Acepto los términos de servicio y la política de privacidad.</span>
-          </label>
-          {errors.terms && <p className="field-error field-error--terms" id="terms-error" role="alert"><span>!</span>{errors.terms}</p>}
-        </div>
-        <FormStatus>{status}</FormStatus>
-        <AuthSubmit>Crear cuenta</AuthSubmit>
-      </form>
-      <p className="auth-switch">¿Ya tienes una cuenta? <Link to="/login">Iniciar sesión</Link></p>
-    </AuthFrame>
-  )
 }
 
 export function ForgotPage() {

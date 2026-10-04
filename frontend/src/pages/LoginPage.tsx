@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { Brand } from '../components/Brand'
 import architecture from '../assets/login-architecture.png'
 import { LoginForm } from '../features/auth/components/LoginForm'
 import { logout, useSession } from '../features/auth/session'
@@ -7,7 +8,7 @@ import '../styles/login.css'
 export function LoginPage() {
   const session = useSession()
   return <div className="login-page">
-    <header className="login-header"><Link to="/" aria-label="Hosteo, ir al inicio"><span>Hosteo</span><small>S.A.C.</small></Link></header>
+    <header className="login-header"><Brand /></header>
     <main className="login-main">
       <div className="login-card">
         <aside className="login-editorial">

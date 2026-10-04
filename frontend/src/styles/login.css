@@ -2,9 +2,6 @@
 
 .login-page { --login-ink: #221d19; --login-muted: #756f69; --login-surface: #f6f3ef; --login-green: #236957; min-height: 100dvh; background: var(--login-surface); color: var(--login-ink); font: 14px/1.45 'Inter', sans-serif; padding: 24px 40px; }
 .login-header { max-width: 1328px; margin: 0 auto 32px; }
-.login-header a { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
-.login-header span { font: 500 24px/32px 'Playfair Display', Georgia, serif; letter-spacing: -.6px; }
-.login-header small { border-left: 1px solid #ded8d1; padding-left: 8px; color: var(--login-muted); font-size: 11px; letter-spacing: 1.1px; }
 .login-main { max-width: 1348px; margin: auto; }
 .login-card { display: grid; grid-template-columns: 5fr 7fr; max-width: 1180px; min-height: 933px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 20px 25px -5px #0000001a, 0 8px 10px -6px #0000001a; }
 .login-editorial { position: relative; min-width: 0; }
