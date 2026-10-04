@@ -1,7 +1,6 @@
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import propertyBarranco from '../assets/property-barranco.jpg'
-import propertyMiraflores from '../assets/property-miraflores.jpg'
 import propertySanIsidro from '../assets/property-san-isidro.jpg'
 import { Brand } from '../components/Brand'
 
@@ -114,75 +113,6 @@ function AuthSubmit({ children }: { children: ReactNode }) {
 
 function FormStatus({ children }: { children: string }) {
   return children ? <p className="form-status" role="status">✓ {children}</p> : null
-}
-
-export function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [remember, setRemember] = useState(false)
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [status, setStatus] = useState('')
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const nextErrors = {
-      email: emailError(email),
-      password: password ? '' : 'Ingresa tu contraseña',
-    }
-    const visibleErrors = Object.fromEntries(Object.entries(nextErrors).filter(([, message]) => message))
-    setErrors(visibleErrors)
-    setStatus(Object.keys(visibleErrors).length ? '' : 'Datos verificados correctamente.')
-  }
-
-  return (
-    <AuthFrame
-      image={propertyMiraflores}
-      imageAlt="Sala de un alojamiento contemporáneo"
-      tagline="Tu próximo lugar favorito te está esperando."
-    >
-      <AuthHeading title="Bienvenido de nuevo" description="Continúa donde lo dejaste y gestiona tus reservas." />
-      <form className="auth-form" onSubmit={handleSubmit} noValidate>
-        <div className="auth-form__fields">
-          <FormField
-            label="Correo electrónico"
-            type="email"
-            placeholder="tu@correo.com"
-            value={email}
-            onChange={(value) => {
-              setEmail(value)
-              setErrors((current) => ({ ...current, email: '' }))
-              setStatus('')
-            }}
-            error={errors.email}
-            autoComplete="email"
-          />
-          <FormField
-            label="Contraseña"
-            type="password"
-            placeholder="Ingresa tu contraseña"
-            value={password}
-            onChange={(value) => {
-              setPassword(value)
-              setErrors((current) => ({ ...current, password: '' }))
-              setStatus('')
-            }}
-            error={errors.password}
-            autoComplete="current-password"
-          />
-        </div>
-        <div className="auth-form__options">
-          <label className="checkbox-field">
-            <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
-            <span>Recordarme</span>
-          </label>
-          <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
-        </div>
-        <FormStatus>{status}</FormStatus>
-        <AuthSubmit>Iniciar sesión</AuthSubmit>
-      </form>
-      <p className="auth-switch">¿Aún no tienes una cuenta? <Link to="/register">Crear cuenta</Link></p>
-    </AuthFrame>
-  )
 }
 
 export function RegisterPage() {

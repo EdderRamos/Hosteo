@@ -43,17 +43,3 @@ Swagger mostrará las operaciones cuando se agreguen controladores. La configura
 ```
 
 Las pruebas utilizan H2 en memoria y no requieren PostgreSQL. H2 permite verificar el contexto y la infraestructura; no sustituye las pruebas futuras de consultas y concurrencia en PostgreSQL.
-
-## HU-01 authentication
-
-The backend follows controller, service, repository and entity layers. DTOs define the API contract. Spring Security validates HS256 bearer tokens issued by the login service. Passwords use BCrypt. Authentication is stateless; tokens are supplied through the Authorization header, never cookies.
-
-`POST /api/v1/auth/login` accepts `email` and `password` and returns `accessToken` and `user` with `id`, `email`, `firstName`, `lastName` and numeric `roleId`; no role name or token metadata is returned by login. `GET /api/v1/auth/me` requires `Authorization: Bearer <token>`.
-
-`GET /api/v1/auth/me` returns the user identity and a numeric `roleId`. JWT claims also use numeric `roleId`; role names are resolved internally for authorization. Internal roles are `ADMINISTRATOR`, `SUPPORT`, `HOST` and `GUEST`. Database tables, columns and role codes use English names. Role-specific route prefixes are `/api/v1/admin/`, `/api/v1/support/`, `/api/v1/host/` and `/api/v1/guest/`. Account status and role are checked against the database on each authenticated request. Inactive accounts and invalid credentials return the same 401 response.
-
-Set `JWT_SECRET` in `.env` to a random secret of at least 32 bytes. Tokens expire after 30 minutes. Swagger supports the bearer token through Authorize. No refresh-token or registration endpoint is included in HU-01.
-
-Flyway applies `V1__create_authentication_tables.sql` on startup. It creates `roles` and `users` and seeds only the four roles. No default users or passwords are created. An existing active user with a BCrypt password hash is required to log in. Registration belongs to HU-02.
-
-The integration tests create isolated accounts in H2. They cover all four roles, invalid credentials, inactive accounts, input validation, malformed requests, missing/tampered/expired tokens, administrative route restrictions and invalidation after account or role changes. PostgreSQL migrations must also be verified against the target database before deployment.
