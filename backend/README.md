@@ -28,7 +28,7 @@ export DB_PASSWORD='tu-contraseña-local'
 ./mvnw spring-boot:run
 ```
 
-Ejecutar desde `backend/` con JDK 21 o superior. El `.env` local usa `DB_DDL_AUTO=create`: Hibernate recrea las tablas mapeadas en cada arranque y elimina sus datos. `BOOTSTRAP_ROLES=true` carga los cuatro roles. La configuración predeterminada sin estas variables valida el esquema existente.
+Ejecutar desde `backend/` con JDK 21 o superior. El `.env` local usa `DB_DDL_AUTO=update` para conservar datos. Con `DB_DDL_AUTO=create`, Hibernate recrea las tablas mapeadas en cada arranque y elimina sus datos. `BOOTSTRAP_ROLES=true` carga los cuatro roles. La configuración predeterminada sin estas variables valida el esquema existente.
 
 - Swagger UI: http://localhost:8080/swagger-ui.html
 - OpenAPI JSON: http://localhost:8080/v3/api-docs

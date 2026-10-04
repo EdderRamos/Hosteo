@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router'
 import { SiteLayout } from './components/SiteLayout'
-import { ForgotPage, LoginPage, RegisterPage } from './pages/AuthPages'
+import { ForgotPage, RegisterPage } from './pages/AuthPages'
+import { LoginPage } from './pages/LoginPage'
 import { HomePage } from './pages/HomePage'
 
 export const router = createBrowserRouter([

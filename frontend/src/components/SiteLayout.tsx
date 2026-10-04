@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Outlet } from 'react-router'
 import { Brand } from './Brand'
+import { logout, useSession } from '../features/auth/session'
 
 const NAV_LINKS = [
   { label: 'Inicio', href: '#inicio' },
@@ -10,6 +11,7 @@ const NAV_LINKS = [
 ]
 
 function SiteHeader() {
+  const session = useSession()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -33,9 +35,9 @@ function SiteHeader() {
         </nav>
 
         <div className="site-header__actions">
-          <Link className="outline-button outline-button--small" to="/login">
+          {session ? <button className="outline-button outline-button--small" type="button" onClick={logout}>Cerrar sesión</button> : <Link className="outline-button outline-button--small" to="/login">
             Iniciar sesión
-          </Link>
+          </Link>}
           <button
             className="menu-button"
             type="button"
