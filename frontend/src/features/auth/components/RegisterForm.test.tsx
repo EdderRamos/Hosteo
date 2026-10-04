@@ -31,7 +31,7 @@ test('rejects mismatched passwords', async () => {
   expect(await screen.findByText('Las contraseñas no coinciden')).toBeTruthy()
   expect(fetch).not.toHaveBeenCalled()
 })
-test('sends the guest contract, prevents repeat submissions, and confirms creation only on success', async () => {
+test('sends the registration contract, prevents repeat submissions, and confirms creation only on success', async () => {
   let finish: ((response: Response) => void) | undefined
   const fetch = vi.fn<(url: string, options: RequestInit) => Promise<Response>>(() => new Promise<Response>(resolve => { finish = resolve }))
   vi.stubGlobal('fetch', fetch)
@@ -44,7 +44,7 @@ test('sends the guest contract, prevents repeat submissions, and confirms creati
   expect(fetch.mock.calls[0][0]).toBe('/api/v1/auth/register')
   expect(JSON.parse(String(fetch.mock.calls[0][1].body))).toEqual({ firstName: 'Camila', lastName: 'Salazar', email: 'camila@correo.pe', password: 'Hosteo2026*' })
   finish?.(new Response(JSON.stringify({ id: 9, firstName: 'Camila', lastName: 'Salazar', email: 'camila@correo.pe', roleId: 4 }), { status: 201 }))
-  expect(await screen.findByRole('status')).toHaveProperty('textContent', 'Tu cuenta de huésped se creó correctamente.')
+  expect(await screen.findByRole('status')).toHaveProperty('textContent', 'Tu cuenta se creó correctamente.')
   expect(screen.getByRole('link', { name: 'Iniciar sesión' }).getAttribute('href')).toBe('/login')
   expect(sessionStorage.length).toBe(0)
   expect(localStorage.length).toBe(0)
