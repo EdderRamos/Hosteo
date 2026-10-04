@@ -23,18 +23,11 @@ public class RegistrationService {
     @Transactional
     public UserResponse register(RegisterRequest request) {
         String email = request.email().strip().toLowerCase(Locale.ROOT);
-        String documentNumber = request.documentNumber().toUpperCase(Locale.ROOT);
         if (users.existsByEmail(email)) {
             throw new DuplicateEmailException();
         }
         if (request.password().getBytes(StandardCharsets.UTF_8).length > 72) {
             throw new InvalidRegistrationException("Password must not exceed 72 UTF-8 bytes");
-        }
-        if (request.documentType() == DocumentType.DNI && !documentNumber.matches("[0-9]{8}")) {
-            throw new InvalidRegistrationException("DNI must contain exactly 8 digits");
-        }
-        if (users.existsByDocumentTypeAndDocumentNumber(request.documentType(), documentNumber)) {
-            throw new DuplicateDocumentException();
         }
         var role = roles.findByCode(RoleCode.GUEST)
                 .orElseThrow(() -> new IllegalStateException("Guest role is not configured"));
@@ -44,8 +37,6 @@ public class RegistrationService {
         user.setFirstName(request.firstName().strip());
         user.setLastName(request.lastName().strip());
         user.setPhone(request.phone() == null || request.phone().isBlank() ? null : request.phone().strip());
-        user.setDocumentType(request.documentType());
-        user.setDocumentNumber(documentNumber);
         user.setRole(role);
         user.setActive(true);
         try {
@@ -57,9 +48,6 @@ public class RegistrationService {
                     String constraint = violation.getConstraintName().toLowerCase(Locale.ROOT);
                     if (constraint.contains("email")) {
                         throw new DuplicateEmailException();
-                    }
-                    if (constraint.contains("users_document_unique")) {
-                        throw new DuplicateDocumentException();
                     }
                 }
             }

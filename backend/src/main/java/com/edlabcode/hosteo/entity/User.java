@@ -7,8 +7,7 @@ import lombok.Setter;
 import java.time.Instant;
 
 @Entity
-@Table(name = "users", uniqueConstraints = @UniqueConstraint(
-        name = "users_document_unique", columnNames = {"document_type", "document_number"}))
+@Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,11 +28,6 @@ public class User {
     private String lastName;
     @Column(name = "phone", length = 30)
     private String phone;
-    @Enumerated(EnumType.STRING)
-    @Column(name = "document_type", length = 30)
-    private DocumentType documentType;
-    @Column(name = "document_number", length = 30)
-    private String documentNumber;
     @Column(name = "active", nullable = false)
     private boolean active = true;
     @Column(name = "last_login_at")

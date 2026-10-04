@@ -60,10 +60,10 @@ The integration tests create isolated accounts in H2. They cover all four roles,
 
 ## HU-02 registration
 
-`POST /api/v1/auth/register` is the single public registration endpoint. It accepts `email`, `password`, `firstName`, `lastName`, optional `phone`, required `documentType` and `documentNumber`. Every account starts as a guest. The client cannot choose a role. Becoming a host is a separate future flow for the same account.
+`POST /api/v1/auth/register` is the single public registration endpoint. It accepts `email`, `password`, `firstName`, `lastName`, and optional `phone`. Every account starts as a guest. The client cannot choose a role. Becoming a host is a separate future flow for the same account.
 
-Document types: `DNI`, `FOREIGN_RESIDENT_CARD`, `PASSPORT`. DNI requires eight digits; other document types accept 1–30 ASCII letters or digits. Numbers are normalized to uppercase and retained as strings. Email and document type/number pairs must be unique. Passwords are hashed with BCrypt and limited to 72 UTF-8 bytes.
+Email must be unique. Passwords are hashed with BCrypt and limited to 72 UTF-8 bytes.
 
-Success returns 201 with the user identity and numeric `roleId`. Invalid input returns 400; duplicate email or document returns 409. Sign in separately through `/api/v1/auth/login`. No default users are created.
+Success returns 201 with the user identity and numeric `roleId`. Invalid input returns 400; duplicate email returns 409. Sign in separately through `/api/v1/auth/login`. No default users are created.
 
 Local development uses `DB_DDL_AUTO=update` to create missing columns and preserve accounts. The fallback remains `validate`. The existing four roles must be present in the database.
