@@ -61,7 +61,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .requestCache(cache -> cache.disable())
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register/guest", "/api/v1/auth/register/host").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/swagger-ui.html", "/swagger-ui/**",
                                 "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml", "/actuator/health",
                                 "/actuator/health/**").permitAll()
