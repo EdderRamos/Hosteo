@@ -6,6 +6,6 @@ export const loginSchema = z.object({
   remember: z.boolean(),
 })
 export type LoginValues = z.infer<typeof loginSchema>
-export const userSchema = z.object({ id: z.number(), email: z.string(), firstName: z.string(), lastName: z.string(), roleId: z.number() })
+export const userSchema = z.object({ id: z.number(), email: z.string(), firstName: z.string(), lastName: z.string(), roleId: z.number(), roleCode: z.enum(['GUEST', 'HOST', 'ADMINISTRATOR', 'SUPPORT']) })
 export const loginResponseSchema = z.object({ accessToken: z.string().min(1), user: userSchema })
 export type AuthUser = z.infer<typeof userSchema>

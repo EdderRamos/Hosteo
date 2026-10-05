@@ -74,3 +74,15 @@ La implementación inicial fue validada con 22 pruebas de frontend, lint y build
 `/profile` reproduce la estructura de la captura aportada: identidad, datos básicos, biografía, ocupación, ubicación, idiomas, intereses y contacto. Consulta `GET /api/v1/customer/profile` y guarda con `PUT` al mismo endpoint, con bearer token y la versión recibida. Solo actualiza el nombre en el encabezado tras confirmar el guardado. Permite descartar cambios, reintentar carga y conserva el formulario ante errores o conflictos de versión. Un 401 limpia la sesión. El backend autoriza huéspedes y anfitriones.
 
 La edición de foto está temporalmente deshabilitada. El formulario y el PUT no incluyen `avatarUrl`; el servicio conserva la foto existente. Los controles para añadir idiomas e intereses se despliegan desde las opciones del diseño. Los datos vacíos permanecen vacíos, sin inventar la identidad de la captura. El diseño móvil se infiere del desktop. La revisión del flujo usa respuestas HTTP simuladas; validar persistencia en la base real requiere iniciar sesión con una cuenta existente y guardar desde la interfaz.
+
+## HU-05: portal Hosteo
+
+`/hosteo` es el home compartido del personal `ADMINISTRATOR` y `SUPPORT`. Login y la ruta raíz usan `roleCode` recibido del backend para decidir el portal, sin asumir IDs fijos. `/home` conserva el catálogo Customer. Al restaurar una sesión se espera la respuesta de `/auth/me` antes de resolver navegación.
+
+El portal adapta la referencia visual aportada: cabecera con cuenta, navegación lateral, tarjetas de cuentas y tabla de asignación. En móvil las filas se convierten en tarjetas con todos sus controles visibles. La información de usuarios y totales proviene de `/api/v1/hosteo`; no hay mocks activos en la aplicación. La búsqueda se envía al confirmar el formulario y la lista usa paginación de servidor.
+
+Administrador puede seleccionar GUEST, HOST, SUPPORT o ADMINISTRATOR para otra cuenta y confirmar el cambio. La interfaz advierte del permiso administrativo y de la invalidación de sesión, impide doble envío y permite recargar ante un conflicto de versión. Soporte comparte la vista con acceso de consulta. La cuenta propia se muestra protegida. La autorización efectiva permanece en el backend.
+
+Los módulos de propiedades, calendario, recepción y liquidaciones se indican como pendientes. No se reproducen cifras operativas, alertas ni aprobaciones ficticias de la referencia fuera de HU-05. Se conserva el logo existente y se usan iniciales para la cuenta sin inventar una foto personal.
+
+Verificación de HU-05: lint y build aprobados; 31 pruebas frontend y 11 backend. Revisión de navegador con respuestas simuladas en 375, 430, 768, 1024, 1280 y 1440 px, asignación confirmada y soporte sin controles de edición. Las pruebas reales de permisos del backend usan H2. La migración PostgreSQL se aplicó y el backend local publica los cuatro endpoints en OpenAPI; no se reasignaron cuentas reales para probar la interfaz.

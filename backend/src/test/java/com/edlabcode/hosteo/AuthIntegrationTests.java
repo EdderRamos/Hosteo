@@ -78,6 +78,7 @@ class AuthIntegrationTests {
             assertFalse(me.body().contains("password"));
             assertEquals(user.getRole().getId().longValue(), json(me).get("roleId").asLong());
             assertFalse(json(me).has("role"));
+            assertEquals(role.name(), json(me).get("roleCode").asText());
             assertNotNull(users.findById(user.getId()).orElseThrow().getLastLoginAt());
             assertEquals("no-store", response.headers().firstValue("cache-control").orElseThrow());
         }
@@ -170,6 +171,55 @@ class AuthIntegrationTests {
         var attemptedPhoto = request("PUT", "/api/v1/customer/profile", mapper.writeValueAsString(payload), token);
         assertTrue(attemptedPhoto.statusCode() == 200 || attemptedPhoto.statusCode() == 400);
         assertEquals("https://example.com/original.jpg", users.findById(user.getId()).orElseThrow().getAvatarUrl());
+    }
+
+    @Test
+    void staffPortalIsRestrictedAndOnlyAdministratorCanAssignRoles() throws Exception {
+        var admin = createUser("admin@hosteo.test", RoleCode.ADMINISTRATOR, true);
+        var guest = createUser("target@hosteo.test", RoleCode.GUEST, true);
+        String adminToken = json(login(admin.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        var target = users.findById(guest.getId()).orElseThrow();
+        String payload = mapper.writeValueAsString(Map.of("roleCode", "SUPPORT", "version", target.getVersion()));
+        for (RoleCode role : RoleCode.values()) {
+            var account = createUser(role.name().toLowerCase() + "-staff@hosteo.test", role, true);
+            String token = json(login(account.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+            boolean staff = role == RoleCode.ADMINISTRATOR || role == RoleCode.SUPPORT;
+            assertEquals(staff ? 200 : 403, request("GET", "/api/v1/hosteo/users", null, token).statusCode());
+            assertEquals(staff ? 200 : 403, request("GET", "/api/v1/hosteo/summary", null, token).statusCode());
+            if (role != RoleCode.ADMINISTRATOR) assertEquals(403, request("PATCH", "/api/v1/hosteo/users/" + target.getId() + "/role", payload, token).statusCode());
+        }
+        assertEquals(401, request("GET", "/api/v1/hosteo/users", null, null).statusCode());
+        assertEquals(400, request("GET", "/api/v1/hosteo/users?page=-1", null, adminToken).statusCode());
+        var page = request("GET", "/api/v1/hosteo/users?query=target", null, adminToken);
+        assertEquals(200, page.statusCode());
+        assertEquals(1, json(page).get("total").asInt());
+        assertFalse(page.body().contains("password"));
+        assertEquals(200, request("GET", "/api/v1/hosteo/roles", null, adminToken).statusCode());
+        assertEquals(200, request("PATCH", "/api/v1/hosteo/users/" + target.getId() + "/role", payload, adminToken).statusCode());
+        assertEquals(RoleCode.SUPPORT, users.findById(target.getId()).orElseThrow().getRole().getCode());
+        assertEquals(409, request("PATCH", "/api/v1/hosteo/users/" + target.getId() + "/role", payload, adminToken).statusCode());
+    }
+
+    @Test
+    void assignmentInvalidatesTokensEvenWhenRoleIsRestoredAndRejectsUnsafeRequests() throws Exception {
+        var admin = createUser("admin@hosteo.test", RoleCode.ADMINISTRATOR, true);
+        var target = createUser("target@hosteo.test", RoleCode.GUEST, true);
+        String adminToken = json(login(admin.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String oldToken = json(login(target.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String path = "/api/v1/hosteo/users/" + target.getId() + "/role";
+        for (RoleCode role : new RoleCode[] {RoleCode.HOST, RoleCode.SUPPORT, RoleCode.ADMINISTRATOR, RoleCode.GUEST}) {
+            var account = users.findById(target.getId()).orElseThrow();
+            var response = request("PATCH", path, mapper.writeValueAsString(Map.of("roleCode", role, "version", account.getVersion())), adminToken);
+            assertEquals(200, response.statusCode());
+            assertEquals(role.name(), json(response).get("roleCode").asText());
+            assertEquals(401, request("GET", "/api/v1/auth/me", null, oldToken).statusCode());
+        }
+        assertEquals(200, login(target.getEmail(), "ValidPassword123!").statusCode());
+        var self = users.findById(admin.getId()).orElseThrow();
+        assertEquals(400, request("PATCH", "/api/v1/hosteo/users/" + admin.getId() + "/role", mapper.writeValueAsString(Map.of("roleCode", "GUEST", "version", self.getVersion())), adminToken).statusCode());
+        assertEquals(400, request("PATCH", path, "{\"roleCode\":\"SUPERADMIN\",\"version\":0}", adminToken).statusCode());
+        assertEquals(400, request("PATCH", path, "{}", adminToken).statusCode());
+        assertEquals(404, request("PATCH", "/api/v1/hosteo/users/999999/role", "{\"roleCode\":\"GUEST\",\"version\":0}", adminToken).statusCode());
     }
 
     private User createUser(String email, RoleCode code, boolean active) {

@@ -24,6 +24,7 @@ public class TokenService {
                 .expiresAt(now.plus(properties.ttl()))
                 .id(UUID.randomUUID().toString())
                 .claim("roleId", user.getRole().getId())
+                .claim("roleRevision", user.getRoleRevision())
                 .build();
         return encoder.encode(JwtEncoderParameters.from(
                 JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();

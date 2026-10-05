@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { logout, restoreSession, saveSession } from './session'
 
-const user = { id: 1, email: 'guest@hosteo.pe', firstName: 'Ana', lastName: 'Lima', roleId: 4 }
+const user = { id: 1, email: 'guest@hosteo.pe', firstName: 'Ana', lastName: 'Lima', roleId: 4, roleCode: 'GUEST' as const }
 function token(seconds: number) { return `header.${btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + seconds }))}.signature` }
 afterEach(() => { logout(); vi.useRealTimers(); vi.unstubAllGlobals() })
 test('remember persists only until token expiration and logout clears both stores', () => {

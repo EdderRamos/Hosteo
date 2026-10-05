@@ -27,7 +27,7 @@ export function LoginForm() {
     try {
       const response = await login(parsed.data)
       saveSession(response.accessToken, response.user, values.remember)
-      navigate('/home', { replace: true })
+      navigate(['ADMINISTRATOR', 'SUPPORT'].includes(response.user.roleCode ?? '') ? '/hosteo' : '/home', { replace: true })
     } catch (error) {
       setError('root', { message: error instanceof Error ? error.message : 'No pudimos iniciar sesión. Intenta nuevamente.' })
     }

@@ -43,7 +43,7 @@ test('sends the registration contract, prevents repeat submissions, and confirms
   expect(fetch).toHaveBeenCalledTimes(1)
   expect(fetch.mock.calls[0][0]).toBe('/api/v1/auth/register')
   expect(JSON.parse(String(fetch.mock.calls[0][1].body))).toEqual({ firstName: 'Camila', lastName: 'Salazar', email: 'camila@correo.pe', password: 'Hosteo2026*' })
-  finish?.(new Response(JSON.stringify({ id: 9, firstName: 'Camila', lastName: 'Salazar', email: 'camila@correo.pe', roleId: 4 }), { status: 201 }))
+  finish?.(new Response(JSON.stringify({ id: 9, firstName: 'Camila', lastName: 'Salazar', email: 'camila@correo.pe', roleId: 4, roleCode: 'GUEST' as const }), { status: 201 }))
   expect(await screen.findByRole('status')).toHaveProperty('textContent', 'Tu cuenta se creó correctamente.')
   expect(screen.getByRole('link', { name: 'Iniciar sesión' }).getAttribute('href')).toBe('/login')
   expect(sessionStorage.length).toBe(0)

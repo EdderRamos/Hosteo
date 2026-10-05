@@ -40,9 +40,9 @@ export function saveSession(token: string, user: AuthUser, remember: boolean) {
   activate(token, user)
   try { (remember ? localStorage : sessionStorage).setItem(KEY, token) } catch { /* Memory-only fallback. */ }
 }
-export function updateSessionUser(user: AuthUser, token: string) {
+export function updateSessionUser(user: Omit<AuthUser, 'roleCode'>, token: string) {
   if (!session || session.accessToken !== token) return
-  session = { ...session, user }
+  session = { ...session, user: { ...session.user, ...user } }
   revision += 1
   notify()
 }

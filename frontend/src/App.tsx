@@ -1,12 +1,13 @@
 import { RouterProvider } from 'react-router'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { restoreSession } from './features/auth/session'
 import { router } from './routes'
 
 function App() {
+  const [ready, setReady] = useState(false)
   useEffect(() => {
     const controller = new AbortController()
-    void restoreSession(controller.signal)
+    void restoreSession(controller.signal).finally(() => { if (!controller.signal.aborted) setReady(true) })
     const checkSession = () => {
       if (document.visibilityState === 'visible') void restoreSession(controller.signal)
     }
@@ -18,6 +19,7 @@ function App() {
       window.removeEventListener('storage', checkSession)
     }
   }, [])
+  if (!ready) return <main role="status">Verificando sesión…</main>
   return <RouterProvider router={router} />
 }
 

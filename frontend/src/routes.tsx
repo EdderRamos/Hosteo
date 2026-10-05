@@ -1,12 +1,15 @@
-import { createBrowserRouter, Navigate } from 'react-router'
+import { createBrowserRouter } from 'react-router'
 import { ForgotPage } from './pages/AuthPages'
 import { RegisterPage } from './pages/RegisterPage'
 import { LoginPage } from './pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { HomeRedirect } from './pages/HomeRedirect'
+import { StaffHomePage } from './pages/StaffHomePage'
 import { CustomerHomePage } from './pages/CustomerHomePage'
 
 export const router = createBrowserRouter([
-  { path: '/', element: <Navigate to="/home" replace /> },
+  { path: '/', Component: HomeRedirect },
+  { path: '/hosteo', Component: StaffHomePage },
   { path: '/profile', Component: ProfilePage },
   { path: '/home', Component: CustomerHomePage },
   { path: '/login', Component: LoginPage },

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { ProfilePage } from '../../pages/ProfilePage'
 import { logout, saveSession } from '../auth/session'
-const profile = { id: 1, firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com', roleId: 4, phone: null, gender: null, dateOfBirth: null, biography: null, occupation: null, location: null, avatarUrl: null, languages: [], interests: [], memberSince: '2026-01-01T00:00:00Z', version: 2 }
+const profile = { id: 1, firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com', roleId: 4, roleCode: 'GUEST' as const, phone: null, gender: null, dateOfBirth: null, biography: null, occupation: null, location: null, avatarUrl: null, languages: [], interests: [], memberSince: '2026-01-01T00:00:00Z', version: 2 }
 const token = `header.${btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 1800 }))}.signature`
 afterEach(() => { cleanup(); logout(); vi.unstubAllGlobals() })
 function setup() { saveSession(token, profile, false); render(<MemoryRouter><ProfilePage /></MemoryRouter>); return userEvent.setup() }

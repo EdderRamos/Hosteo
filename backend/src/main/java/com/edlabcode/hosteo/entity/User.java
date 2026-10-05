@@ -61,6 +61,8 @@ public class User {
     private Instant createdAt;
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+    @Column(name = "role_revision", nullable = false)
+    private long roleRevision;
     @Version
     private long version;
 

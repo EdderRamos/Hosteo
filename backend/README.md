@@ -79,3 +79,20 @@ Biography is limited to 500 characters, dates of birth must be in the past, avat
 Use the `version` returned by GET to save changes. Stale versions return 409 PROFILE_CONFLICT. Role, activation state, password, membership date and user ID are not editable. Profile updates and collections are saved transactionally. Hibernate update adds the profile columns and `user_languages`/`user_interests` tables in local development.
 
 El perfil usa `GET` y `PUT /api/v1/customer/profile`. La edición de foto está temporalmente deshabilitada: `avatarUrl` sigue disponible en la respuesta para mostrar una foto existente, pero no forma parte de `UpdateProfileRequest` y el servicio conserva su valor al actualizar los demás datos.
+
+## HU-05: portal de personal y asignación de roles
+
+El prefijo `/api/v1/hosteo` comparte el portal entre `ADMINISTRATOR` y `SUPPORT`. Customer agrupa `GUEST` y `HOST` en la interfaz, pero conserva ambos códigos y permisos. No existe un quinto rol Customer ni Superadmin.
+
+| Método y ruta | Permiso | Contrato |
+| --- | --- | --- |
+| GET `/api/v1/hosteo/summary` | Administrador/Soporte | Totales de cuentas customer, administradores y soporte, incluyendo inactivas |
+| GET `/api/v1/hosteo/roles` | Administrador/Soporte | Códigos de los cuatro roles |
+| GET `/api/v1/hosteo/users?query=&page=0` | Administrador/Soporte | `items`, `total`, `page`, `pages`; 10 cuentas por página, búsqueda por email/nombres/apellidos |
+| PATCH `/api/v1/hosteo/users/{id}/role` | Solo Administrador | `{ "roleCode": "SUPPORT", "version": 3 }`; devuelve la cuenta actualizada |
+
+Las respuestas de usuarios incluyen ID, nombres, email, código de rol, estado activo y versión; nunca hashes. El actor no puede cambiar su propio rol. La versión desactualizada devuelve 409; una cuenta inexistente, 404; rol inválido o payload incompleto, 400. Se bloquean actor y destino en orden de ID dentro de una transacción y se revalida que el actor siga siendo administrador activo.
+
+Aplicar `backend/database/migrations/001_user_role_revision.sql` antes de arrancar contra un esquema PostgreSQL existente. La migración añade `users.role_revision` sin cambiar roles ni cuentas; ya se aplicó a la base configurada durante esta implementación. No se configura ejecución automática de migraciones en este cambio. H2 crea el campo mediante JPA en las pruebas.
+
+El JWT y las respuestas de login/me ahora incluyen, respectivamente, `roleRevision` y `roleCode`. Cada reasignación efectiva incrementa la revisión e invalida tokens anteriores, incluso si después se restaura el rol inicial. Los JWT emitidos antes de este cambio requieren iniciar sesión nuevamente. La invalidación se aplica en la siguiente solicitud autenticada; no existe notificación push ni un nuevo token enviado a la cuenta afectada. Se necesita una cuenta administrativa provisionada previamente; el registro público continúa creando únicamente huéspedes.

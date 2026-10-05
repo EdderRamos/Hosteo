@@ -12,6 +12,18 @@ import java.util.LinkedHashMap;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler({jakarta.validation.ConstraintViolationException.class,
+            org.springframework.web.method.annotation.HandlerMethodValidationException.class})
+    public ResponseEntity<ApiError> parameterValidation(Exception exception) {
+        return ResponseEntity.badRequest().body(ApiError.of(400, "VALIDATION_ERROR", "Check the submitted parameters"));
+    }
+
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiError> status(org.springframework.web.server.ResponseStatusException exception) {
+        int status = exception.getStatusCode().value();
+        return ResponseEntity.status(status).body(ApiError.of(status, status == 409 ? "USER_CONFLICT" : "STAFF_REQUEST_ERROR", exception.getReason()));
+    }
+
     @ExceptionHandler(InvalidProfileException.class)
     public ResponseEntity<ApiError> invalidProfile(InvalidProfileException exception) {
         return ResponseEntity.badRequest().body(ApiError.of(400, "INVALID_PROFILE", exception.getMessage()));
