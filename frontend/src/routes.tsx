@@ -17,6 +17,7 @@ export const router = createBrowserRouter([
   { path: '/host', Component: HostHomePage },
   { path: '/host/properties', lazy: async () => ({ Component: (await import('./pages/HostPropertyPages')).HostPropertiesPage }) },
   { path: '/host/properties/new', lazy: async () => ({ Component: (await import('./pages/HostPropertyPages')).RegisterPropertyPage }) },
+  { path: '/host/properties/:id/edit', lazy: async () => ({ Component: (await import('./pages/HostPropertyPages')).EditPropertyPage }) },
   { path: '/host/properties/:id', lazy: async () => ({ Component: (await import('./pages/HostPropertyPages')).PropertyConfirmationPage }) },
   { path: '/login', Component: LoginPage },
   { path: '/register', Component: RegisterPage },

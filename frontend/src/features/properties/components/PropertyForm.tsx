@@ -1,19 +1,20 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router'
 import { ApiError } from '../../../shared/api/http'
 import { logout } from '../../auth/session'
-import { createProperty } from '../api'
-import { propertySchema, type PropertyValues, typeLabels } from '../schemas'
+import { createProperty, updateProperty } from '../api'
+import { propertySchema, type PropertyValues, type HostProperty, typeLabels } from '../schemas'
 
 const defaults: PropertyValues = { title: '', description: '', type: 'APARTMENT', address: '', city: 'Lima', district: '', capacity: 1, bedrooms: 1, beds: 1, bathrooms: 1, nightlyRate: 0, currency: 'PEN' }
-export function PropertyForm({ token }: { token: string }) {
+export function PropertyForm({ token, property, onReload }: { token: string; property?: HostProperty; onReload?: () => void }) {
+  const [conflict, setConflict] = useState(false)
   const navigate = useNavigate()
   const client = useQueryClient()
   const attempt = useRef<{ payload: string; key: string } | null>(null)
-  const { register, handleSubmit, setError, clearErrors, formState: { errors, isSubmitting } } = useForm<PropertyValues>({ defaultValues: defaults })
-  const mutation = useMutation({ mutationFn: ({ values, key }: { values: PropertyValues; key: string }) => createProperty(token, values, key), retry: false })
+  const { register, handleSubmit, setError, clearErrors, formState: { errors, isSubmitting } } = useForm<PropertyValues>({ defaultValues: property ?? defaults })
+  const mutation = useMutation({ mutationFn: ({ values, key }: { values: PropertyValues; key: string }) => property ? updateProperty(token, property.id, values, property.version) : createProperty(token, values, key), retry: false })
   async function submit(values: PropertyValues) {
     clearErrors()
     const parsed = propertySchema.safeParse(values)
@@ -32,10 +33,12 @@ export function PropertyForm({ token }: { token: string }) {
     try {
       const saved = await mutation.mutateAsync({ values: parsed.data, key: attempt.current.key })
       client.setQueryData(['host-property', token, String(saved.id)], saved)
-      navigate(`/host/properties/${saved.id}`, { replace: true })
+      await client.invalidateQueries({ queryKey: ['host-properties', token] })
+      navigate(`/host/properties/${saved.id}`, { replace: true, state: { propertySaved: Boolean(property) } })
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) { logout(); navigate('/login', { replace: true }); return }
-      const message = error instanceof ApiError && error.status === 409 ? 'Este intento ya corresponde a otros datos. Revisa la información antes de registrar otra propiedad.' : error instanceof Error ? error.message : 'No pudimos registrar la propiedad. Intenta nuevamente.'
+      if (property && error instanceof ApiError && error.status === 409) setConflict(true)
+      const message = property && error instanceof ApiError && error.status === 409 ? 'La propiedad cambió en otra sesión. Tus cambios siguen aquí. Recarga los datos actuales antes de guardar de nuevo.' : error instanceof ApiError && error.status === 409 ? 'Este intento ya corresponde a otros datos. Revisa la información antes de registrar otra propiedad.' : error instanceof Error ? error.message : 'No pudimos registrar la propiedad. Intenta nuevamente.'
       setError('root', { message })
       if (error instanceof ApiError) for (const [name] of Object.entries(error.fieldErrors)) {
         if (name in defaults) setError(name as keyof PropertyValues, { message: 'Revisa este campo.' })
@@ -53,6 +56,6 @@ export function PropertyForm({ token }: { token: string }) {
     <section className="property-section"><div className="property-section-heading"><span>02</span><div><h2>Ubicación</h2><p>Indica la dirección real de tu alojamiento.</p></div></div><div className="property-fields"><div className="property-field-full">{field('address', 'Dirección', 255, 'Calle, número y departamento')}</div>{field('city', 'Ciudad', 100)}{field('district', 'Distrito', 100, 'Ej. Miraflores')}</div></section>
     <section className="property-section"><div className="property-section-heading"><span>03</span><div><h2>Distribución y capacidad</h2><p>Ayuda a los huéspedes a conocer el espacio disponible.</p></div></div><div className="property-counts">{number('capacity', 'Huéspedes', 1)}{number('bedrooms', 'Habitaciones', 0)}{number('beds', 'Camas', 1)}{number('bathrooms', 'Baños', 0)}</div></section>
     <section className="property-section"><div className="property-section-heading"><span>04</span><div><h2>Tarifa por noche</h2><p>Elige una moneda y define tu tarifa base.</p></div></div><div className="property-fields"><div className="property-field"><label htmlFor="property-rate">Precio por noche <span>*</span></label><input required id="property-rate" type="number" min="0.01" step="0.01" placeholder="0.00" {...register('nightlyRate', { valueAsNumber: true })} aria-invalid={Boolean(errors.nightlyRate)} aria-describedby={errors.nightlyRate ? 'error-rate' : undefined} />{errors.nightlyRate && <small id="error-rate" role="alert">{errors.nightlyRate.message}</small>}</div><div className="property-field"><label htmlFor="property-currency">Moneda <span>*</span></label><select required id="property-currency" {...register('currency')}><option value="PEN">PEN · Soles</option><option value="USD">USD · Dólares</option></select></div></div></section>
-    <div className="property-form-footer"><p>Los campos con * son obligatorios.</p>{errors.root && <p className="property-error" role="alert">{errors.root.message}</p>}<div><Link to="/host" aria-disabled={isSubmitting} onClick={event => { if (isSubmitting) event.preventDefault() }}>Volver al portal</Link><button className="property-primary" disabled={isSubmitting}>{isSubmitting ? 'Registrando…' : 'Registrar propiedad'}</button></div></div>
+    <div className="property-form-footer"><p>Los campos con * son obligatorios.</p>{errors.root && <p className="property-error" role="alert">{errors.root.message}</p>}{conflict && <div className="property-error"><p>Recargar descartará los cambios de este formulario.</p><button type="button" onClick={onReload}>Descartar cambios y recargar</button></div>}<div><Link to={property ? `/host/properties/${property.id}` : '/host'} aria-disabled={isSubmitting} onClick={event => { if (isSubmitting) event.preventDefault() }}>{property ? 'Cancelar edición' : 'Volver al portal'}</Link><button className="property-primary" disabled={isSubmitting || conflict}>{isSubmitting ? (property ? 'Guardando…' : 'Registrando…') : (property ? 'Guardar cambios' : 'Registrar propiedad')}</button></div></div>
   </fieldset></form>
 }

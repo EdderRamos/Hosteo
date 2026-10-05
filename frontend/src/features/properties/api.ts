@@ -18,3 +18,10 @@ export async function loadProperties(token: string, page: number, signal?: Abort
   if (!parsed.success) throw new ApiError(502, 'No pudimos leer tus propiedades. Intenta nuevamente.')
   return parsed.data
 }
+
+export async function updateProperty(token: string, id: number, values: PropertyValues, version: number) {
+  const response = await request(`/host/properties/${id}`, { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ ...values, version }) })
+  const parsed = propertyResponseSchema.safeParse(response)
+  if (!parsed.success) throw new ApiError(502, 'No pudimos confirmar el guardado. Consulta la información actual antes de volver a guardar.')
+  return parsed.data
+}

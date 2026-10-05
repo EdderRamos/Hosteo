@@ -467,6 +467,50 @@ class AuthIntegrationTests {
         assertEquals(401, request("GET", "/api/v1/host/properties", null, token).statusCode());
     }
 
+    @Test
+    void editingPreservesOwnershipAndStateAndRejectsStaleVersions() throws Exception {
+        var host = createUser("host@hosteo.test", RoleCode.HOST, true);
+        var other = createUser("other@hosteo.test", RoleCode.HOST, true);
+        String token = json(login(host.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String otherToken = json(login(other.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        var created = json(request("POST", "/api/v1/host/properties", mapper.writeValueAsString(propertyPayload()), token, java.util.UUID.randomUUID().toString()));
+        String path = "/api/v1/host/properties/" + created.get("id").asLong();
+        var payload = propertyPayload(); payload.put("version", created.get("version").asLong());
+        assertEquals(200, request("PUT", path, mapper.writeValueAsString(payload), token).statusCode());
+        assertEquals(created.get("version").asLong(), json(request("GET", path, null, token)).get("version").asLong());
+        payload.put("title", "  Updated title  "); payload.put("district", "Barranco"); payload.put("capacity", 6);
+        payload.put("nightlyRate", 250); payload.put("currency", "USD"); payload.put("hostId", other.getId()); payload.put("status", "PUBLISHED");
+        assertEquals(404, request("PUT", path, mapper.writeValueAsString(payload), otherToken).statusCode());
+        var savedResponse = request("PUT", path, mapper.writeValueAsString(payload), token);
+        assertEquals(200, savedResponse.statusCode()); assertEquals("no-store", savedResponse.headers().firstValue("cache-control").orElseThrow());
+        var saved = json(savedResponse); assertEquals("Updated title", saved.get("title").asText());
+        assertEquals("DRAFT", saved.get("status").asText()); assertEquals(host.getId().longValue(), saved.get("hostId").asLong());
+        assertEquals(6, saved.get("capacity").asInt()); assertEquals("USD", saved.get("currency").asText());
+        assertEquals(created.get("createdAt").asText(), saved.get("createdAt").asText());
+        assertTrue(saved.get("version").asLong() > created.get("version").asLong());
+        assertEquals(409, request("PUT", path, mapper.writeValueAsString(payload), token).statusCode());
+        assertEquals("Updated title", json(request("GET", path, null, token)).get("title").asText());
+        payload.put("version", saved.get("version").asLong()); payload.put("capacity", 0);
+        assertEquals(400, request("PUT", path, mapper.writeValueAsString(payload), token).statusCode());
+        payload.put("capacity", 6); payload.remove("version");
+        assertEquals(400, request("PUT", path, mapper.writeValueAsString(payload), token).statusCode());
+        assertEquals(401, request("PUT", path, "{}", null).statusCode());
+        for (RoleCode role : new RoleCode[] {RoleCode.GUEST, RoleCode.SUPPORT, RoleCode.ADMINISTRATOR}) {
+            var user = createUser(role.name().toLowerCase() + "@hosteo.test", role, true);
+            String rejected = json(login(user.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+            assertEquals(403, request("PUT", path, "{}", rejected).statusCode());
+        }
+        for (var status : com.edlabcode.hosteo.entity.PropertyStatus.values()) {
+            var property = registeredProperties.findById(created.get("id").asLong()).orElseThrow(); property.setStatus(status); property = registeredProperties.saveAndFlush(property);
+            payload.put("version", property.getVersion()); payload.put("title", "Title " + status.name());
+            var updated = request("PUT", path, mapper.writeValueAsString(payload), token);
+            assertEquals(200, updated.statusCode()); assertEquals(status.name(), json(updated).get("status").asText());
+        }
+        assertEquals(404, request("PUT", "/api/v1/host/properties/999999", mapper.writeValueAsString(payload), token).statusCode());
+        host = users.findById(host.getId()).orElseThrow(); host.setActive(false); users.saveAndFlush(host);
+        assertEquals(401, request("PUT", path, mapper.writeValueAsString(payload), token).statusCode());
+    }
+
     private User createUser(String email, RoleCode code, boolean active) {
         var user = new User();
         user.setEmail(email);

@@ -49,6 +49,27 @@ public class HostPropertyService {
         return new Registration(PropertyResponse.from(properties.saveAndFlush(property)), true);
     }
 
+    @Transactional
+    public PropertyResponse update(String subject, long revision, Long id, UpdatePropertyRequest input) {
+        var host = users.findLockedById(Long.valueOf(subject))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication"));
+        if (!host.isActive() || host.getRoleRevision() != revision)
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication");
+        if (host.getRole().getCode() != RoleCode.HOST)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Host access required");
+        var property = properties.findLockedOwned(id, host.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
+        if (property.getVersion() != input.version())
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Property changed. Reload before saving again");
+        var request = input.information();
+        if (PropertyResponse.from(property).registration().equals(request)) return PropertyResponse.from(property);
+        property.setTitle(request.title()); property.setDescription(request.description()); property.setType(request.type());
+        property.setAddress(request.address()); property.setCity(request.city()); property.setDistrict(request.district());
+        property.setCapacity(request.capacity()); property.setBedrooms(request.bedrooms()); property.setBeds(request.beds());
+        property.setBathrooms(request.bathrooms()); property.setNightlyRate(request.nightlyRate()); property.setCurrency(request.currency());
+        return PropertyResponse.from(properties.saveAndFlush(property));
+    }
+
     @Transactional(readOnly = true)
     public HostPropertyListResponse list(String subject, int page) {
         var result = properties.findAllByHostId(Long.valueOf(subject),

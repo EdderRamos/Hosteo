@@ -130,3 +130,11 @@ Verificación: lint, build y 55 pruebas frontend aprobadas; pruebas de permisos,
 `/host/properties`, accesible desde el portal del anfitrión y la confirmación de registro, consulta la API real del listado. Presenta título, tipo, ubicación, capacidad, tarifa, fecha y los estados Borrador, Pendiente de revisión, Publicada y Rechazada. Cada tarjeta abre su información guardada; “Actualizar estados” consulta nuevamente el servidor. La paginación de diez registros usa `page` en la URL y TanStack Query con claves separadas por sesión y página.
 
 Incluye carga, lista vacía, recuperación de errores y retorno a la primera página cuando no hay resultados en la página elegida. Solo HOST accede; un 401 termina la sesión. Se reutiliza la estética de HU-07 y se infiere la adaptación móvil, sin un frame específico aportado para HU-08. Pruebas de navegador con HTTP simulado verificaron seis anchos de 375 a 1440 px, actualización, detalle y recarga sin desbordamientos ni errores JavaScript.
+
+## HU-09: edición de propiedades
+
+Desde las tarjetas o el detalle se abre `/host/properties/:id/edit`. El formulario reutiliza los campos y el diseño de HU-07, carga los datos actuales por GET y guarda por PUT con su versión. Solo confirma el guardado tras validar la respuesta. Conserva entradas ante fallos, bloquea envíos repetidos y permite cancelar sin escribir. Las consultas de lista se invalidan tras guardar.
+
+Un conflicto 409 mantiene los cambios locales y bloquea otro guardado hasta que el anfitrión elija “Descartar cambios y recargar”. Se informa que esa acción descartará sus cambios. El formulario no recarga automáticamente al recuperar foco o conexión para evitar perder entradas. Un 401 cierra la sesión; una propiedad ajena o inexistente muestra no encontrada. La edición conserva el estado de la propiedad, sin transiciones adicionales.
+
+La revisión de navegador, con respuestas HTTP simuladas, verificó edición, guardado, recarga y cancelación en seis anchos de 375 a 1440 px sin desbordamientos ni errores JavaScript. No se proporcionó un frame específico de HU-09; se mantiene la estética existente.

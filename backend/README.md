@@ -132,3 +132,11 @@ The 19 backend tests pass with H2, covering server ownership, DRAFT status, inpu
 `GET /api/v1/host/properties?page=0` requiere HOST activo y devuelve `{ items, total, page, pages }`, diez propiedades por página, ordenadas por creación descendente e ID descendente para desempatar. `items` usa `PropertyResponse`, incluyendo estado, tarifa, ubicación y fecha de registro. La consulta filtra siempre por el ID del JWT; no acepta un anfitrión elegido por el cliente. No requiere migración adicional.
 
 Páginas negativas o inválidas devuelven 400; sin sesión válida, 401; otros roles, 403. Una página fuera del resultado devuelve items vacío conservando total y pages. Las respuestas usan no-store. Las pruebas verifican aislamiento entre anfitriones, paginación, orden, estados, cuentas desactivadas y permisos.
+
+## HU-09: editar información de una propiedad
+
+`PUT /api/v1/host/properties/{id}` requiere HOST activo. Recibe los mismos campos principales y validaciones del registro más `version` obligatoria, entera y no negativa, obtenida del GET. La propiedad se busca por ID y anfitrión autenticado; una propiedad ajena o inexistente devuelve 404. La respuesta 200 incluye los datos persistidos y `Cache-Control: no-store`.
+
+Se bloquean la cuenta del anfitrión y la propiedad en una transacción, se revalidan el acceso y la revisión del JWT y se comprueba la versión. Una versión desactualizada devuelve 409 sin sobrescribir datos. La edición preserva identidad, propietario, fecha de creación, clave de registro y estado; no agrega transiciones de aprobación o publicación que HU-09 no define. Una escritura idéntica con versión vigente no incrementa la versión. No requiere migración adicional.
+
+Las pruebas verifican edición, persistencia, validación, aislamiento, conflictos, permisos, cuentas inactivas y preservación de los cuatro estados. No se editaron propiedades reales para probar el flujo.
