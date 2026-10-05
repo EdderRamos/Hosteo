@@ -176,3 +176,38 @@ PropertyResponse añade publishedAt, reviewedAt y reviewComment para informar al
 Aplicar `database/migrations/004_property_reviews.sql` antes de iniciar con validate: añade metadatos y crea el historial con unicidad de propiedad/versión. Se aplicó a la base PostgreSQL configurada sin decidir sobre propiedades reales. No se configura ejecución automática de migraciones.
 
 Verificación: 29 pruebas backend con H2, incluyendo aprobación, rechazo, historial, reintentos, permisos, validación, publicación retirada tras edición, reenvío y decisiones concurrentes. Las pruebas de navegador usan respuestas simuladas.
+
+
+## HU-17 a HU-31: operaciones de estadía
+
+Aplicar `database/migrations/005_booking_operations.sql` antes de iniciar un esquema con validate. Crea availability_blocks, bookings, booking_status_history y simulated_payments, sus claves únicas, relaciones, índices y comprobaciones básicas de fechas/importes. También añade registration_key y quoted_property_version si bookings ya existía con el esquema inicial del ERD. Fue aplicada a PostgreSQL sin modificar cuentas ni crear reservas/pagos reales de prueba. La ejecución de migraciones sigue siendo manual.
+
+| API | Permiso / alcance |
+| --- | --- |
+| GET `/api/v1/catalog/properties?page=0`, `/{id}` | Público, solo PUBLISHED; DTO de información pública sin identidad del anfitrión ni comentarios administrativos |
+| GET `/api/v1/guest/properties/{id}/availability?checkIn=&checkOut=&guestCount=` | GUEST activo; cotización y disponibilidad orientativas |
+| POST `/api/v1/guest/bookings` | GUEST; Idempotency-Key UUID y `{propertyId, propertyVersion, checkIn, checkOut, guestCount}` |
+| GET `/api/v1/{guest,host,admin}/bookings?page=0`, `/{id}` | Reservas propias del huésped, de propiedades propias del anfitrión o todas para ADMINISTRATOR |
+| POST/GET `/api/v1/guest/bookings/{id}/payment` | Reserva propia; POST recibe `{version}` y registra el total simulado; GET devuelve pago o null si no existe |
+| GET `/api/v1/{host,admin}/managed-properties?page=0` | Propiedades propias del HOST o todas del ADMINISTRATOR |
+| GET `/api/v1/{host,admin}/properties/{id}/calendar?startDate=&endDate=` | Bloqueos y rangos ocupados; HOST propietario o ADMINISTRATOR |
+| POST `/api/v1/{host,admin}/properties/{id}/blocks` | `{startDate,endDate,reason}`; crear bloqueo sin cruces |
+| PATCH `/api/v1/{host,admin}/properties/{propertyId}/blocks/{id}/deactivate` | `{version}`; HOST solo sobre bloqueos que creó en su propiedad; ADMINISTRATOR sobre cualquiera |
+| PATCH `/api/v1/admin/bookings/{id}/status` | `{status,version,comment}`; motivo obligatorio y control de versión |
+| GET `/api/v1/admin/bookings/{id}/history` | Historial de estados, incluyendo el registro inicial |
+| GET `/api/v1/admin/payments?page=0` | Consulta de pagos simulados registrados |
+| GET `/api/v1/{host,admin}/operations/summary` | Agregados propios para HOST o globales para ADMINISTRATOR |
+
+Los listados usan `{items,total,page,pages}`, diez registros por página y orden descendente de creación/ID. Las respuestas usan no-store. SUPPORT no tiene permiso en estos namespaces. Recursos ajenos se responden como 404; acceso inválido/inactivo, 401; otros roles, 403; entradas inválidas, 400; cruces o versiones/estados desactualizados, 409.
+
+Todos los intervalos son `[inicio, fin)`, con fin excluido. Se admite hasta 366 días/noches por consulta/operación; crear bloqueos y reservas requiere iniciar hoy o después, según America/Lima. No hay cruce cuando una entrada coincide con la salida de otra estadía. Solo CANCELLED libera las fechas: CONFIRMED, IN_PROGRESS y COMPLETED ocupan su intervalo histórico.
+
+Crear una reserva o un bloqueo, desactivar un bloqueo, cambiar estado y registrar un pago bloquean la misma fila de properties dentro de la transacción. Las escrituras también bloquean/revalidan al actor. La comprobación de cruces consulta reservas no canceladas y bloqueos activos después del bloqueo, evitando la carrera entre dos reservas o entre reserva y mantenimiento. La disponibilidad previa no garantiza una reserva: se comprueba nuevamente al escribir. Crear/desactivar bloqueos constituye la gestión de disponibilidad de HU-17/HU-18; no se editan intervalos de reservas registradas.
+
+La reserva valida publicación, capacidad y propertyVersion antes de aplicar el precio vigente. Conserva tarifa, total, moneda, fechas, código UUID y huésped como datos históricos inmutables. La tarifa multiplicada por noches debe caber en numeric(12,2). La reserva válida se confirma inmediatamente; el pago tiene estado independiente. Idempotency-Key es único por huésped: reintentar los mismos datos recupera la reserva, reutilizarlo para datos diferentes devuelve 409. No se aceptan importes del cliente.
+
+El seguimiento permite CONFIRMED → IN_PROGRESS → COMPLETED; CONFIRMED/IN_PROGRESS → CANCELLED. COMPLETED y CANCELLED son finales. Un cambio agrega historial dentro de la transacción; un no-op con versión vigente no lo duplica. No se exige esperar al día de ingreso/salida para avanzar estados en el flujo de demostración.
+
+El pago es exclusivamente simulado, por el total histórico y moneda de la reserva, con referencia UUID y estado APPROVED inmediato. Se permite en CONFIRMED/IN_PROGRESS. Solo existe un pago por reserva; repetir la solicitud devuelve el registro existente. Cancelar después conserva ese pago y no procesa reembolsos ni datos bancarios. Los agregados distinguen volúmenes reservados no cancelados y pagos aprobados, sin sumar monedas distintas. Próximas llegadas cuenta CONFIRMED con check_in desde hoy; bloqueos activos cuenta el flag activo, incluidos registros históricos aún no desactivados.
+
+Validación imprescindible solicitada: solo `OperationsIntegrationTests` (3 pruebas H2) para recorrido completo, permisos/fechas/precio/estados y concurrencia con fechas adyacentes. No se ejecutó la suite completa previa. El navegador utiliza respuestas simuladas; la migración y la publicación local de los endpoints se verificaron por separado.

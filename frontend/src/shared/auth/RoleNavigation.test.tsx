@@ -18,7 +18,7 @@ test('host portal preserves HOST identity and marks its pending business flows',
   session('HOST'); render(<MemoryRouter initialEntries={['/host']}><HostHomePage /></MemoryRouter>)
   expect(screen.getByText('Portal del anfitrión')).toBeTruthy()
   expect(screen.getByText('Anfitrión')).toBeTruthy()
-  expect(screen.getAllByText('Pendiente de implementación')).toHaveLength(1)
+  expect(screen.getByRole('link', { name: 'Consultar reservas →' }).getAttribute('href')).toBe('/host/bookings')
   expect(screen.getByRole('link', { name: 'Editar mi perfil' }).getAttribute('href')).toBe('/profile')
 })
 test('host cannot enter guest home', async () => {

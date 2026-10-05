@@ -5,8 +5,8 @@ Landing y flujo de autenticación de Hosteo, construidos con React 19, TypeScrip
 ## Pantallas
 
 - `/` y `/home`: redirigen al portal correspondiente al rol.
-- `/guest`: catálogo del huésped con buscador y filtros locales.
-- `/host`: home del anfitrión, con módulos de negocio pendientes.
+- `/guest`: listado real de propiedades publicadas.
+- `/host`: home del anfitrión, con propiedades, reservas, disponibilidad y resumen.
 - `/hosteo`: portal de administrador y soporte, con permisos distintos.
 - `/profile`: perfil personal para los cuatro roles.
 - `/login`: inicio de sesión.
@@ -15,9 +15,10 @@ Landing y flujo de autenticación de Hosteo, construidos con React 19, TypeScrip
 
 ## Desarrollo local
 
-El inicio reproduce el frame de catálogo proporcionado por el usuario. Usa seis alojamientos de ejemplo y permite combinar filtros por distrito, precio y capacidad. Las fechas se validan localmente; no se consulta disponibilidad ni se crean reservas. Los botones de disponibilidad abren una vista previa y las funciones pendientes muestran un aviso. El encabezado muestra la sesión real cuando el usuario inicia sesión. El catálogo aún no dispone de una API de propiedades; autenticación, perfil y gestión de usuarios sí están integrados con el backend.
+El catálogo consulta propiedades publicadas del backend; ya no muestra alojamientos de ejemplo ni simula disponibilidad. El recorrido de reserva requiere una sesión de huésped y comprueba capacidad, precio vigente y cruces de fechas en el servidor. Los pagos son exclusivamente simulados. Las propiedades todavía no tienen contrato de fotos: las tarjetas usan un marcador visual, sin atribuir fotografías de ejemplo a alojamientos reales.
 
-Las fotografías reutilizan assets existentes: son aproximaciones porque el MCP de Figma alcanzó su cuota y la referencia disponible fue la captura. El logo usa el asset único de Hosteo aportado por el usuario.
+
+La implementación inicial del catálogo reutilizaba fotografías de ejemplo; el catálogo real usa marcadores hasta contar con fotografías de cada propiedad. El logo usa el asset único de Hosteo aportado por el usuario.
 
 ```bash
 npm ci
@@ -32,7 +33,7 @@ npm run test
 npm run build
 ```
 
-Login y registro consumen la API real de autenticación. La recuperación conserva el flujo visual local; las reservas se integrarán con sus respectivas historias.
+Login, registro y reservas consumen la API real. La recuperación conserva el flujo visual local.
 
 ## HU-01: inicio de sesión
 
@@ -121,7 +122,7 @@ Verificación de esta migración: 44 pruebas frontend, lint y build aprobados; 1
 
 React Hook Form y Zod validan antes del envío; TanStack Query administra creación y consulta. Se conservan los datos ante errores, se deshabilita el formulario durante el guardado y se reutiliza `Idempotency-Key` al reintentar los mismos datos. La confirmación `/host/properties/:id` muestra datos persistidos, se puede recargar y confirma que la propiedad queda como borrador sin publicación. Los datos no se guardan en almacenamiento web. Un 401 termina la sesión.
 
-La aplicación consume POST y GET reales de `/api/v1/host/properties`. El listado, la edición y el envío a validación se integran en HU-08 a HU-10; las fotos y la publicación administrativa corresponden a flujos posteriores. El catálogo de huéspedes conserva sus ejemplos hasta integrar propiedades publicadas.
+La aplicación consume POST y GET reales de `/api/v1/host/properties`. El listado, la edición y el envío a validación se integran en HU-08 a HU-10; las fotos y la publicación administrativa corresponden a flujos posteriores. El catálogo ahora integra propiedades publicadas mediante el flujo operativo documentado al final.
 
 Verificación: lint, build y 55 pruebas frontend aprobadas; pruebas de permisos, validación, errores, reintento idempotente y confirmación. Las respuestas HTTP del frontend se simulan; las pruebas del backend verifican persistencia y seguridad con H2.
 
@@ -163,6 +164,29 @@ Verificación: 95 pruebas frontend, lint y build; navegador con respuestas HTTP 
 
 El expediente ofrece “Aprobar propiedad” y “Rechazar propiedad”, con confirmación explícita y la versión consultada. La aprobación cambia el estado a Publicada; el rechazo requiere un motivo de hasta 1000 caracteres. Ambas decisiones muestran confirmación solo tras validar la respuesta persistida, retiran la propiedad de pendientes y bloquean envíos repetidos. Cancelar/Escape no escriben y devuelven foco al control de origen. Los errores conservan el comentario; un conflicto ofrece actualizar el expediente y un 401 termina la sesión.
 
-El anfitrión consulta el motivo del rechazo y la fecha de publicación en su detalle. Puede corregir y reenviar una propiedad rechazada. Editar información de una publicada advierte que se retirará la publicación; el backend la devuelve a borrador y exige el flujo de validación nuevamente. El catálogo público con API de propiedades corresponde a HU-13; el catálogo de huéspedes todavía conserva sus ejemplos.
+El anfitrión consulta el motivo del rechazo y la fecha de publicación en su detalle. Puede corregir y reenviar una propiedad rechazada. Editar información de una publicada advierte que se retirará la publicación; el backend la devuelve a borrador y exige el flujo de validación nuevamente. El flujo operativo integra el listado/detalle mínimo de propiedades publicadas necesario para reservar; fotos, búsqueda avanzada y filtros adicionales conservan sus historias específicas.
 
 Verificación: 104 pruebas frontend, lint y build aprobados. Navegador con respuestas simuladas para confirmación en seis anchos de 375 a 1440 px, aprobación, rechazo, validación del motivo, salida de la bandeja y consulta del motivo por el anfitrión, sin desbordamientos ni errores JavaScript. Se conserva el diseño del portal existente.
+
+
+## HU-17 a HU-31: disponibilidad, reservas, pagos y resúmenes
+
+| Rol | Rutas |
+| --- | --- |
+| Huésped | `/guest`, `/guest/properties/:id`, `/guest/bookings`, `/guest/bookings/:id` |
+| Anfitrión | `/host/operations`, `/host/properties/:id/calendar`, `/host/bookings`, `/host/bookings/:id` |
+| Administrador | `/hosteo/operations`, `/hosteo/properties/:id/calendar`, `/hosteo/bookings`, `/hosteo/bookings/:id`, `/hosteo/payments` |
+
+HU-17/HU-18 permiten consultar rangos de ocupación y crear/desactivar bloqueos, conservando el registro. El anfitrión solo gestiona propiedades propias y no puede retirar un bloqueo creado por el administrador. Las fechas usan `[inicio, fin)`: el día de salida no ocupa una noche. Los formularios advierten de ese límite y no admiten cruces con reservas o bloqueos activos. Una confirmación precede a las escrituras; recibe foco, permite Escape/Cancelar y bloquea envíos repetidos.
+
+HU-19 a HU-22 seleccionan llegada/salida/huéspedes, consultan disponibilidad y precio, confirman el total y registran una reserva CONFIRMED con código único. El servidor vuelve a validar todo al guardar. Cambiar fechas o capacidad invalida la cotización de la interfaz; un conflicto exige consultar de nuevo. Los reintentos conservan Idempotency-Key para evitar duplicados. La confirmación se recupera por GET al recargar, sin basarse en una pantalla ficticia de éxito.
+
+HU-23 a HU-26 ofrecen listas paginadas y detalle por rol. El administrador puede avanzar Confirmada → En curso → Completada, o cancelar una Confirmada/En curso, con motivo, confirmación y control de versión. Los estados finales no se reabren. Se muestra el historial. Cancelar libera las fechas y conserva la reserva y sus datos.
+
+HU-27 a HU-29 registran cero o un pago por reserva, siempre por su total histórico y moneda. La simulación se confirma como aprobada, sin tarjetas, datos bancarios ni pasarela. El huésped consulta estado/referencia/importe; el administrador consulta todos los pagos. Una cancelación conserva el pago simulado: no genera reembolso bancario. Las listas y resúmenes se actualizan tras guardar.
+
+HU-30/HU-31 muestran cantidades por estado, próximas llegadas confirmadas, bloqueos activos e importes de reservas no canceladas y pagos aprobados. Los importes se separan por PEN/USD. El anfitrión solo recibe agregados propios. Los estados de carga, vacío, error y recuperación se muestran explícitamente. Soporte no accede a estas operaciones; sus consultas corresponden a otras HUs.
+
+Se usa TanStack Query, React Hook Form, Zod y el diseño existente; el catálogo y las pantallas operativas se cargan de forma diferida. El catálogo real es una dependencia mínima del flujo de reserva, no una implementación de búsqueda avanzada ni fotos inexistentes.
+
+Validación limitada por solicitud del usuario: 3 pruebas frontend focalizadas (recorrido reserva/pago, invalidación/conflictos y catálogo vacío), lint y build. Una revisión de navegador con HTTP simulado cubrió los tres roles, recarga de reserva/pago, bloqueos, seguimiento y resúmenes en móvil 375 px y escritorio 1440 px, sin desbordamientos ni errores JavaScript. No se ejecutó la suite completa anterior ni se crearon reservas reales de prueba.

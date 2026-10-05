@@ -24,6 +24,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     Page<Property> findAllByStatus(PropertyStatus status, Pageable pageable);
     @EntityGraph(attributePaths = "host")
     Optional<Property> findByIdAndStatus(Long id, PropertyStatus status);
+    @Query("select p.status,count(p) from Property p where (:host is null or p.host.id=:host) group by p.status")
+    java.util.List<Object[]> statusTotals(@Param("host") Long host);
     Page<Property> findAllByHostId(Long hostId, Pageable pageable);
     Optional<Property> findByIdAndHostId(Long id, Long hostId);
     Optional<Property> findByHostIdAndRegistrationKey(Long hostId, UUID registrationKey);

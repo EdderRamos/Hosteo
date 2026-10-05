@@ -43,6 +43,10 @@ class AuthIntegrationTests {
     private PropertyRepository registeredProperties;
     @Autowired
     private com.edlabcode.hosteo.repository.PropertyReviewRepository propertyReviews;
+    @Autowired private com.edlabcode.hosteo.repository.SimulatedPaymentRepository operationPayments;
+    @Autowired private com.edlabcode.hosteo.repository.BookingStatusHistoryRepository operationHistory;
+    @Autowired private com.edlabcode.hosteo.repository.BookingRepository operationBookings;
+    @Autowired private com.edlabcode.hosteo.repository.AvailabilityBlockRepository operationBlocks;
     @Autowired
     private RoleRepository roles;
     @Autowired
@@ -55,6 +59,7 @@ class AuthIntegrationTests {
 
     @BeforeEach
     void prepareRoles() {
+        operationPayments.deleteAll(); operationHistory.deleteAll(); operationBookings.deleteAll(); operationBlocks.deleteAll();
         propertyReviews.deleteAll();
         registeredProperties.deleteAll();
         users.deleteAll();
