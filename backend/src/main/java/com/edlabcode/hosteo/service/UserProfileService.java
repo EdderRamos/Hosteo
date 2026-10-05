@@ -4,13 +4,16 @@ import com.edlabcode.hosteo.dto.ProfileResponse;
 import com.edlabcode.hosteo.dto.UpdateProfileRequest;
 import com.edlabcode.hosteo.entity.ProfileLanguage;
 import com.edlabcode.hosteo.entity.User;
-import com.edlabcode.hosteo.exception.*;
+import com.edlabcode.hosteo.exception.DuplicateEmailException;
+import com.edlabcode.hosteo.exception.InvalidProfileException;
+import com.edlabcode.hosteo.exception.ProfileConflictException;
 import com.edlabcode.hosteo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.HashSet;
 import java.util.Locale;
 

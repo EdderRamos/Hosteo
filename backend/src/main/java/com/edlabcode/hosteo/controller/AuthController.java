@@ -1,14 +1,17 @@
 package com.edlabcode.hosteo.controller;
 
-import com.edlabcode.hosteo.dto.*;
+import com.edlabcode.hosteo.dto.LoginRequest;
+import com.edlabcode.hosteo.dto.LoginResponse;
+import com.edlabcode.hosteo.dto.RegisterRequest;
+import com.edlabcode.hosteo.dto.UserResponse;
 import com.edlabcode.hosteo.service.AuthService;
 import com.edlabcode.hosteo.service.RegistrationService;
-import org.springframework.http.HttpStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;

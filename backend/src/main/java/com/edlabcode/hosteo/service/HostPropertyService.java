@@ -1,17 +1,21 @@
 package com.edlabcode.hosteo.service;
 
 import com.edlabcode.hosteo.dto.*;
-import com.edlabcode.hosteo.entity.*;
-import com.edlabcode.hosteo.repository.*;
+import com.edlabcode.hosteo.entity.Property;
+import com.edlabcode.hosteo.entity.PropertyStatus;
+import com.edlabcode.hosteo.entity.RoleCode;
+import com.edlabcode.hosteo.repository.PropertyRepository;
+import com.edlabcode.hosteo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
 import java.util.UUID;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +24,9 @@ public class HostPropertyService {
     private final UserRepository users;
     private final PropertyRepository properties;
     private final jakarta.validation.Validator validator;
-    public record Registration(PropertyResponse property, boolean created) {}
+
+    public record Registration(PropertyResponse property, boolean created) {
+    }
 
     @Transactional
     public Registration create(String subject, long revision, UUID key, CreatePropertyRequest input) {
@@ -41,12 +47,20 @@ public class HostPropertyService {
         }
         var property = new Property();
         property.setHost(host);
-        property.setTitle(request.title()); property.setDescription(request.description()); property.setType(request.type());
-        property.setAddress(request.address()); property.setCity(request.city()); property.setDistrict(request.district());
-        property.setCapacity(request.capacity()); property.setBedrooms(request.bedrooms());
-        property.setBeds(request.beds()); property.setBathrooms(request.bathrooms());
-        property.setNightlyRate(request.nightlyRate()); property.setCurrency(request.currency());
-        property.setStatus(PropertyStatus.DRAFT); property.setRegistrationKey(key);
+        property.setTitle(request.title());
+        property.setDescription(request.description());
+        property.setType(request.type());
+        property.setAddress(request.address());
+        property.setCity(request.city());
+        property.setDistrict(request.district());
+        property.setCapacity(request.capacity());
+        property.setBedrooms(request.bedrooms());
+        property.setBeds(request.beds());
+        property.setBathrooms(request.bathrooms());
+        property.setNightlyRate(request.nightlyRate());
+        property.setCurrency(request.currency());
+        property.setStatus(PropertyStatus.DRAFT);
+        property.setRegistrationKey(key);
         return new Registration(PropertyResponse.from(properties.saveAndFlush(property)), true);
     }
 
@@ -67,13 +81,23 @@ public class HostPropertyService {
         var request = input.information();
         if (PropertyResponse.from(property).registration().equals(request)) return PropertyResponse.from(property);
         if (property.getStatus() == PropertyStatus.PUBLISHED) {
-            property.setStatus(PropertyStatus.DRAFT); property.setPublishedAt(null);
-            property.setReviewedAt(null); property.setReviewComment(null);
+            property.setStatus(PropertyStatus.DRAFT);
+            property.setPublishedAt(null);
+            property.setReviewedAt(null);
+            property.setReviewComment(null);
         }
-        property.setTitle(request.title()); property.setDescription(request.description()); property.setType(request.type());
-        property.setAddress(request.address()); property.setCity(request.city()); property.setDistrict(request.district());
-        property.setCapacity(request.capacity()); property.setBedrooms(request.bedrooms()); property.setBeds(request.beds());
-        property.setBathrooms(request.bathrooms()); property.setNightlyRate(request.nightlyRate()); property.setCurrency(request.currency());
+        property.setTitle(request.title());
+        property.setDescription(request.description());
+        property.setType(request.type());
+        property.setAddress(request.address());
+        property.setCity(request.city());
+        property.setDistrict(request.district());
+        property.setCapacity(request.capacity());
+        property.setBedrooms(request.bedrooms());
+        property.setBeds(request.beds());
+        property.setBathrooms(request.bathrooms());
+        property.setNightlyRate(request.nightlyRate());
+        property.setCurrency(request.currency());
         return PropertyResponse.from(properties.saveAndFlush(property));
     }
 
@@ -102,7 +126,9 @@ public class HostPropertyService {
         if (!validator.validate(information).isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Complete the property's principal information before submitting");
         property.setStatus(PropertyStatus.PENDING_REVIEW);
-        property.setReviewedAt(null); property.setReviewComment(null); property.setPublishedAt(null);
+        property.setReviewedAt(null);
+        property.setReviewComment(null);
+        property.setPublishedAt(null);
         property.setSubmittedAt(java.time.Instant.now());
         return PropertyResponse.from(properties.saveAndFlush(property));
     }

@@ -2,6 +2,7 @@ package com.edlabcode.hosteo.dto;
 
 import com.edlabcode.hosteo.entity.PropertyType;
 import jakarta.validation.constraints.*;
+
 import java.math.BigDecimal;
 
 public record UpdatePropertyRequest(

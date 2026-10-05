@@ -2,14 +2,18 @@ package com.edlabcode.hosteo.service;
 
 import com.edlabcode.hosteo.dto.RegisterRequest;
 import com.edlabcode.hosteo.dto.UserResponse;
-import com.edlabcode.hosteo.entity.*;
-import com.edlabcode.hosteo.exception.*;
-import com.edlabcode.hosteo.repository.*;
+import com.edlabcode.hosteo.entity.RoleCode;
+import com.edlabcode.hosteo.entity.User;
+import com.edlabcode.hosteo.exception.DuplicateEmailException;
+import com.edlabcode.hosteo.exception.InvalidRegistrationException;
+import com.edlabcode.hosteo.repository.RoleRepository;
+import com.edlabcode.hosteo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 

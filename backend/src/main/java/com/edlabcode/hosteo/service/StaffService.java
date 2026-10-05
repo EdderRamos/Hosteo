@@ -1,33 +1,47 @@
 package com.edlabcode.hosteo.service;
-import com.edlabcode.hosteo.dto.*;
+
+import com.edlabcode.hosteo.dto.AssignRoleRequest;
+import com.edlabcode.hosteo.dto.StaffUserResponse;
+import com.edlabcode.hosteo.dto.UpdateUserStatusRequest;
 import com.edlabcode.hosteo.entity.RoleCode;
-import com.edlabcode.hosteo.repository.*;
+import com.edlabcode.hosteo.repository.RoleRepository;
+import com.edlabcode.hosteo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
-import org.springframework.data.domain.*;
-import java.util.*;
+
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class StaffService {
     private final UserRepository users;
     private final RoleRepository roles;
-    public record UserPage(List<StaffUserResponse> items, long total, int page, int pages) {}
-    public record Summary(long guests, long hosts, long administrators, long support) {}
+
+    public record UserPage(List<StaffUserResponse> items, long total, int page, int pages) {
+    }
+
+    public record Summary(long guests, long hosts, long administrators, long support) {
+    }
+
     @Transactional(readOnly = true)
     public Summary summary() {
         return new Summary(users.countByRoleCode(RoleCode.GUEST), users.countByRoleCode(RoleCode.HOST),
                 users.countByRoleCode(RoleCode.ADMINISTRATOR), users.countByRoleCode(RoleCode.SUPPORT));
     }
+
     @Transactional(readOnly = true)
     public UserPage search(String query, int page) {
         var result = users.findByEmailContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
                 query.strip(), query.strip(), query.strip(), PageRequest.of(page, 10, Sort.by("lastName", "firstName", "id")));
         return new UserPage(result.getContent().stream().map(StaffUserResponse::from).toList(), result.getTotalElements(), page, result.getTotalPages());
     }
+
     @Transactional
     @PreAuthorize("hasRole('ADMINISTRATOR')")
     public StaffUserResponse assign(Long id, String actor, long actorRevision, AssignRoleRequest request) {
@@ -65,7 +79,8 @@ public class StaffService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication");
         if (administrator.getRole().getCode() != RoleCode.ADMINISTRATOR)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Administrator access required");
-        if (id.equals(actorId)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot change your own account access");
+        if (id.equals(actorId))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot change your own account access");
         return first.getId().equals(id) ? first : second;
     }
 

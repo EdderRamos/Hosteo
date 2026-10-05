@@ -29,7 +29,7 @@ public class UserProfileController {
     @PutMapping
     @Operation(summary = "Replace your personal profile")
     public ResponseEntity<ProfileResponse> updateProfile(@AuthenticationPrincipal Jwt jwt,
-                                                        @Valid @RequestBody UpdateProfileRequest request) {
+                                                         @Valid @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(profiles.updateProfile(jwt.getSubject(), request));
     }

@@ -1,9 +1,16 @@
 package com.edlabcode.hosteo.service;
 
-import com.edlabcode.hosteo.dto.*;
-import com.edlabcode.hosteo.entity.*;
-import com.edlabcode.hosteo.repository.*;
-import java.util.List;
+import com.edlabcode.hosteo.dto.CreatePropertyRequest;
+import com.edlabcode.hosteo.dto.PendingPropertyResponse;
+import com.edlabcode.hosteo.dto.PropertyResponse;
+import com.edlabcode.hosteo.dto.ReviewPropertyRequest;
+import com.edlabcode.hosteo.entity.PropertyReview;
+import com.edlabcode.hosteo.entity.PropertyStatus;
+import com.edlabcode.hosteo.entity.ReviewDecision;
+import com.edlabcode.hosteo.entity.RoleCode;
+import com.edlabcode.hosteo.repository.PropertyRepository;
+import com.edlabcode.hosteo.repository.PropertyReviewRepository;
+import com.edlabcode.hosteo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -12,6 +19,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -22,17 +31,22 @@ public class PropertyReviewService {
     private final UserRepository users;
     private final PropertyReviewRepository reviews;
     private final jakarta.validation.Validator validator;
-    public record PendingPage(List<PendingPropertyResponse> items, long total, int page, int pages) {}
+
+    public record PendingPage(List<PendingPropertyResponse> items, long total, int page, int pages) {
+    }
+
     public PendingPage list(int page) {
         var result = properties.findAllByStatus(PropertyStatus.PENDING_REVIEW,
                 PageRequest.of(page, 10, Sort.by(Sort.Order.asc("submittedAt"), Sort.Order.asc("id"))));
         return new PendingPage(result.map(PendingPropertyResponse::from).getContent(),
                 result.getTotalElements(), result.getNumber(), result.getTotalPages());
     }
+
     public PendingPropertyResponse get(Long id) {
         return properties.findByIdAndStatus(id, PropertyStatus.PENDING_REVIEW).map(PendingPropertyResponse::from)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pending property not found"));
     }
+
     @Transactional
     public PropertyResponse decide(String subject, long revision, Long id, ReviewPropertyRequest input) {
         var administrator = users.findLockedById(Long.valueOf(subject))
@@ -59,10 +73,17 @@ public class PropertyReviewService {
                 response.capacity(), response.bedrooms(), response.beds(), response.bathrooms(), response.nightlyRate(), response.currency())).isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Property information is incomplete");
         var now = java.time.Instant.now();
-        var review = new PropertyReview(); review.setProperty(property); review.setAdministrator(administrator);
-        review.setDecision(input.decision()); review.setComment(comment); review.setPropertyVersion(input.version()); review.setReviewedAt(now);
+        var review = new PropertyReview();
+        review.setProperty(property);
+        review.setAdministrator(administrator);
+        review.setDecision(input.decision());
+        review.setComment(comment);
+        review.setPropertyVersion(input.version());
+        review.setReviewedAt(now);
         reviews.save(review);
-        property.setStatus(decisionStatus); property.setReviewedAt(now); property.setReviewComment(comment);
+        property.setStatus(decisionStatus);
+        property.setReviewedAt(now);
+        property.setReviewComment(comment);
         property.setPublishedAt(input.decision() == ReviewDecision.APPROVED ? now : null);
         return PropertyResponse.from(properties.saveAndFlush(property));
     }

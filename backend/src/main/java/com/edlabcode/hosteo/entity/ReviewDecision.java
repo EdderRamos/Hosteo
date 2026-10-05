@@ -1,3 +1,3 @@
 package com.edlabcode.hosteo.entity;
 
-public enum ReviewDecision { APPROVED, REJECTED }
+public enum ReviewDecision {APPROVED, REJECTED}

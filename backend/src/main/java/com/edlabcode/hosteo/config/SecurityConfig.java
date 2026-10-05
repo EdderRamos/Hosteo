@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.web.SecurityFilterChain;
+
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -55,7 +56,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, AccountJwtConverter converter,
-                                                  SecurityErrorHandler errors) throws Exception {
+                                                   SecurityErrorHandler errors) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -65,7 +66,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/swagger-ui.html", "/swagger-ui/**",
                                 "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml", "/actuator/health",
                                 "/actuator/health/**").permitAll()
-                        .requestMatchers(HttpMethod.GET,"/api/v1/catalog/properties","/api/v1/catalog/properties/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/catalog/properties", "/api/v1/catalog/properties/**").permitAll()
                         .requestMatchers("/api/v1/hosteo/**").hasAnyRole("ADMINISTRATOR", "SUPPORT")
                         .requestMatchers("/api/v1/profile").hasAnyRole("GUEST", "HOST", "ADMINISTRATOR", "SUPPORT")
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMINISTRATOR")
