@@ -13,7 +13,11 @@ export type PropertyValues = z.infer<typeof propertySchema>
 export const propertyResponseSchema = propertySchema.extend({
   id: z.number().int().positive(), hostId: z.number().int().positive(),
   status: z.enum(['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'REJECTED']),
-  createdAt: z.string(), updatedAt: z.string(), version: z.number().int().nonnegative(),
+  createdAt: z.string().refine(value => Number.isFinite(Date.parse(value))), updatedAt: z.string().refine(value => Number.isFinite(Date.parse(value))), version: z.number().int().nonnegative(),
 })
 export type HostProperty = z.infer<typeof propertyResponseSchema>
 export const typeLabels = { APARTMENT: 'Departamento', HOUSE: 'Casa', ROOM: 'Habitación' }
+
+export const propertyListSchema = z.object({ items: z.array(propertyResponseSchema), total: z.number().int().nonnegative(), page: z.number().int().nonnegative(), pages: z.number().int().nonnegative() })
+export const statusLabels = { DRAFT: 'Borrador', PENDING_REVIEW: 'Pendiente de revisión', PUBLISHED: 'Publicada', REJECTED: 'Rechazada' } as const
+export const statusDescriptions = { DRAFT: 'Todavía no está publicada.', PENDING_REVIEW: 'En espera de revisión administrativa.', PUBLISHED: 'Disponible en el catálogo.', REJECTED: 'No aprobada para publicación.' } as const

@@ -429,6 +429,44 @@ class AuthIntegrationTests {
         assertEquals(201, request("POST", "/api/v1/host/properties", mapper.writeValueAsString(zeros), token, java.util.UUID.randomUUID().toString()).statusCode());
     }
 
+    @Test
+    void hostListingIsOwnedPaginatedAndReturnsCurrentStates() throws Exception {
+        var host = createUser("host@hosteo.test", RoleCode.HOST, true);
+        var other = createUser("other@hosteo.test", RoleCode.HOST, true);
+        String token = json(login(host.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String otherToken = json(login(other.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        assertEquals(0, json(request("GET", "/api/v1/host/properties", null, token)).get("total").asInt());
+        for (int i = 0; i < 11; i++) {
+            var payload = propertyPayload(); payload.put("title", "Property " + i);
+            var response = request("POST", "/api/v1/host/properties", mapper.writeValueAsString(payload), token, java.util.UUID.randomUUID().toString());
+            assertEquals(201, response.statusCode());
+            var property = registeredProperties.findById(json(response).get("id").asLong()).orElseThrow();
+            property.setStatus(com.edlabcode.hosteo.entity.PropertyStatus.values()[i % 4]);
+            registeredProperties.saveAndFlush(property);
+        }
+        request("POST", "/api/v1/host/properties", mapper.writeValueAsString(propertyPayload()), otherToken, java.util.UUID.randomUUID().toString());
+        var response = request("GET", "/api/v1/host/properties", null, token);
+        assertEquals(200, response.statusCode());
+        assertEquals("no-store", response.headers().firstValue("cache-control").orElseThrow());
+        var first = json(response);
+        assertEquals(11, first.get("total").asInt()); assertEquals(2, first.get("pages").asInt());
+        assertEquals(10, first.get("items").size()); assertEquals("Property 10", first.get("items").get(0).get("title").asText());
+        for (var property : first.get("items")) { assertEquals(host.getId().longValue(), property.get("hostId").asLong()); assertNotNull(property.get("status")); }
+        var second = json(request("GET", "/api/v1/host/properties?page=1", null, token));
+        assertEquals(1, second.get("items").size()); assertEquals("Property 0", second.get("items").get(0).get("title").asText());
+        assertEquals(0, json(request("GET", "/api/v1/host/properties?page=2", null, token)).get("items").size());
+        assertEquals(400, request("GET", "/api/v1/host/properties?page=-1", null, token).statusCode());
+        assertEquals(400, request("GET", "/api/v1/host/properties?page=abc", null, token).statusCode());
+        assertEquals(401, request("GET", "/api/v1/host/properties", null, null).statusCode());
+        for (RoleCode role : new RoleCode[] { RoleCode.GUEST, RoleCode.SUPPORT, RoleCode.ADMINISTRATOR }) {
+            var user = createUser(role.name().toLowerCase() + "@hosteo.test", role, true);
+            String rejected = json(login(user.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+            assertEquals(403, request("GET", "/api/v1/host/properties", null, rejected).statusCode());
+        }
+        host = users.findById(host.getId()).orElseThrow(); host.setActive(false); users.saveAndFlush(host);
+        assertEquals(401, request("GET", "/api/v1/host/properties", null, token).statusCode());
+    }
+
     private User createUser(String email, RoleCode code, boolean active) {
         var user = new User();
         user.setEmail(email);

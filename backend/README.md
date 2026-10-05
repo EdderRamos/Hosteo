@@ -126,3 +126,9 @@ Creation returns 201, the persisted property and its `Location`. An identical re
 `GET /api/v1/host/properties/{id}` returns the authenticated host's property for confirmation and reload. Missing and foreign properties both return 404. Both endpoints return `Cache-Control: no-store`. Listing, editing, photos, submission for review and publication are separate stories.
 
 The 19 backend tests pass with H2, covering server ownership, DRAFT status, input/header validation, role and active-account restrictions, foreign-property access, duplicate retries and conflicting registration keys. PostgreSQL migration and local OpenAPI endpoints were verified separately; browser responses were simulated without creating test properties in the real database.
+
+## HU-08: consultar propiedades del anfitrión
+
+`GET /api/v1/host/properties?page=0` requiere HOST activo y devuelve `{ items, total, page, pages }`, diez propiedades por página, ordenadas por creación descendente e ID descendente para desempatar. `items` usa `PropertyResponse`, incluyendo estado, tarifa, ubicación y fecha de registro. La consulta filtra siempre por el ID del JWT; no acepta un anfitrión elegido por el cliente. No requiere migración adicional.
+
+Páginas negativas o inválidas devuelven 400; sin sesión válida, 401; otros roles, 403. Una página fuera del resultado devuelve items vacío conservando total y pages. Las respuestas usan no-store. Las pruebas verifican aislamiento entre anfitriones, paginación, orden, estados, cuentas desactivadas y permisos.

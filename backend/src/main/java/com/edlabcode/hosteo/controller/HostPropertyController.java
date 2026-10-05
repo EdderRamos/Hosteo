@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,6 +31,12 @@ public class HostPropertyController {
         return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
                 .location(URI.create("/api/v1/host/properties/" + result.property().id()))
                 .cacheControl(CacheControl.noStore()).body(result.property());
+    }
+    @GetMapping
+    @Operation(summary = "List your registered properties and their current status")
+    public ResponseEntity<HostPropertyListResponse> list(@AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") @Min(0) int page) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(properties.list(jwt.getSubject(), page));
     }
     @GetMapping("/{id}")
     @Operation(summary = "Read your registered property confirmation")

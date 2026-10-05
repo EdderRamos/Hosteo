@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +47,14 @@ public class HostPropertyService {
         property.setNightlyRate(request.nightlyRate()); property.setCurrency(request.currency());
         property.setStatus(PropertyStatus.DRAFT); property.setRegistrationKey(key);
         return new Registration(PropertyResponse.from(properties.saveAndFlush(property)), true);
+    }
+
+    @Transactional(readOnly = true)
+    public HostPropertyListResponse list(String subject, int page) {
+        var result = properties.findAllByHostId(Long.valueOf(subject),
+                PageRequest.of(page, 10, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))));
+        return new HostPropertyListResponse(result.map(PropertyResponse::from).getContent(),
+                result.getTotalElements(), result.getNumber(), result.getTotalPages());
     }
 
     @Transactional(readOnly = true)

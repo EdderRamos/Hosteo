@@ -124,3 +124,9 @@ React Hook Form y Zod validan antes del envío; TanStack Query administra creaci
 La aplicación consume POST y GET reales de `/api/v1/host/properties`. Fotos, listado de propiedades, edición y envío a validación corresponden a flujos posteriores. El catálogo de huéspedes conserva sus ejemplos hasta integrar propiedades publicadas.
 
 Verificación: lint, build y 55 pruebas frontend aprobadas; pruebas de permisos, validación, errores, reintento idempotente y confirmación. Las respuestas HTTP del frontend se simulan; las pruebas del backend verifican persistencia y seguridad con H2.
+
+## HU-08: mis propiedades
+
+`/host/properties`, accesible desde el portal del anfitrión y la confirmación de registro, consulta la API real del listado. Presenta título, tipo, ubicación, capacidad, tarifa, fecha y los estados Borrador, Pendiente de revisión, Publicada y Rechazada. Cada tarjeta abre su información guardada; “Actualizar estados” consulta nuevamente el servidor. La paginación de diez registros usa `page` en la URL y TanStack Query con claves separadas por sesión y página.
+
+Incluye carga, lista vacía, recuperación de errores y retorno a la primera página cuando no hay resultados en la página elegida. Solo HOST accede; un 401 termina la sesión. Se reutiliza la estética de HU-07 y se infiere la adaptación móvil, sin un frame específico aportado para HU-08. Pruebas de navegador con HTTP simulado verificaron seis anchos de 375 a 1440 px, actualización, detalle y recarga sin desbordamientos ni errores JavaScript.
