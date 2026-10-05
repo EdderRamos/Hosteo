@@ -1,3 +1,5 @@
+import { API_BASE_URL } from './config'
+
 export class ApiError extends Error {
   status: number
   code?: string
@@ -10,12 +12,11 @@ export class ApiError extends Error {
   }
 }
 
-const baseUrl = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/$/, '')
-
 export async function request(path: string, options: RequestInit = {}): Promise<unknown> {
+  if (!API_BASE_URL) throw new ApiError(0, 'Falta configurar VITE_API_URL para conectar con Hosteo.')
   let response: Response
   try {
-    response = await fetch(`${baseUrl}${path}`, { ...options, cache: 'no-store', signal: options.signal ?? AbortSignal.timeout(15000) })
+    response = await fetch(`${API_BASE_URL}${path}`, { ...options, cache: 'no-store', signal: options.signal ?? AbortSignal.timeout(15000) })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error
     throw new ApiError(0, 'No pudimos conectar con Hosteo. Revisa tu conexión e intenta nuevamente.')

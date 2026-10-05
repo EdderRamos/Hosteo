@@ -1,0 +1,1237 @@
+@startuml
+class com.edlabcode.hosteo.dto.LoginUserResponse {
+- Long id
+- String email
+- String firstName
+- String lastName
+- Long roleId
+- com.edlabcode.hosteo.entity.RoleCode roleCode
++ {static} LoginUserResponse from(User)
++ String lastName()
++ Long roleId()
++ String firstName()
++ com.edlabcode.hosteo.entity.RoleCode roleCode()
++ String email()
++ Long id()
+}
+
+
+class com.edlabcode.hosteo.service.TokenService {
+- JwtEncoder encoder
+- JwtProperties properties
++ String issue(User)
+}
+
+
+class com.edlabcode.hosteo.dto.ReviewPropertyRequest {
+- Long version
+- ReviewDecision decision
+- String comment
++ boolean isRejectionReasonValid()
++ String normalizedComment()
++ String comment()
++ Long version()
++ ReviewDecision decision()
+}
+
+
+interface com.edlabcode.hosteo.repository.BookingStatusHistoryRepository {
+~ List<BookingStatusHistory> findByBookingIdOrderByChangedAtAscIdAsc(Long)
+}
+
+class com.edlabcode.hosteo.dto.ProfileResponse {
+- Long id
+- String firstName
+- String lastName
+- String email
+- String phone
+- Long roleId
+- com.edlabcode.hosteo.entity.RoleCode roleCode
+- Gender gender
+- LocalDate dateOfBirth
+- String biography
+- String occupation
+- String location
+- String avatarUrl
+- List<LanguageRequest> languages
+- List<String> interests
+- Instant memberSince
+- long version
++ {static} ProfileResponse from(User)
++ String lastName()
++ String occupation()
++ Long roleId()
++ String biography()
++ List<LanguageRequest> languages()
++ String location()
++ long version()
++ String email()
++ LocalDate dateOfBirth()
++ String avatarUrl()
++ Long id()
++ Instant memberSince()
++ String firstName()
++ com.edlabcode.hosteo.entity.RoleCode roleCode()
++ String phone()
++ List<String> interests()
++ Gender gender()
+}
+
+
+class com.edlabcode.hosteo.entity.Role {
+- Long id
+- RoleCode code
+- String description
+}
+
+class com.edlabcode.hosteo.service.StaffService {
+- UserRepository users
+- RoleRepository roles
++ Summary summary()
++ UserPage search(String,int)
++ StaffUserResponse assign(Long,String,long,AssignRoleRequest)
++ StaffUserResponse updateStatus(Long,String,long,UpdateUserStatusRequest)
+- com.edlabcode.hosteo.entity.User lockedTarget(Long,String,long)
+- void checkVersion(com.edlabcode.hosteo.entity.User,long)
+}
+
+
+class com.edlabcode.hosteo.service.StaffService$UserPage {
+- List<StaffUserResponse> items
+- long total
+- int page
+- int pages
++ List<StaffUserResponse> items()
++ long total()
++ int page()
++ int pages()
+}
+
+
+class com.edlabcode.hosteo.service.StaffService$Summary {
+- long guests
+- long hosts
+- long administrators
+- long support
++ long guests()
++ long support()
++ long administrators()
++ long hosts()
+}
+
+
+class com.edlabcode.hosteo.entity.BookingStatusHistory {
+- Long id
+- Booking booking
+- User changedBy
+- BookingStatus previousStatus
+- BookingStatus newStatus
+- String comment
+- Instant changedAt
+}
+
+enum com.edlabcode.hosteo.entity.PropertyStatus {
++  DRAFT
++  PENDING_REVIEW
++  PUBLISHED
++  REJECTED
+}
+
+class com.edlabcode.hosteo.service.PropertyReviewService {
+- PropertyRepository properties
+- UserRepository users
+- PropertyReviewRepository reviews
+- jakarta.validation.Validator validator
++ PendingPage list(int)
++ PendingPropertyResponse get(Long)
++ PropertyResponse decide(String,long,Long,ReviewPropertyRequest)
+}
+
+
+class com.edlabcode.hosteo.service.PropertyReviewService$PendingPage {
+- List<PendingPropertyResponse> items
+- long total
+- int page
+- int pages
++ long total()
++ int page()
++ List<PendingPropertyResponse> items()
++ int pages()
+}
+
+
+class com.edlabcode.hosteo.dto.HostPropertyListResponse {
+- List<PropertyResponse> items
+- long total
+- int page
+- int pages
++ List<PropertyResponse> items()
++ long total()
++ int page()
++ int pages()
+}
+
+
+class com.edlabcode.hosteo.entity.User {
+- Long id
+- Role role
+- String email
+- String passwordHash
+- String firstName
+- String lastName
+- String phone
+- Gender gender
+- LocalDate dateOfBirth
+- String biography
+- String occupation
+- String location
+- String avatarUrl
+- List<ProfileLanguage> languages
+- List<String> interests
+- boolean active
+- Instant lastLoginAt
+- Instant createdAt
+- Instant updatedAt
+- long roleRevision
+- long version
+~ void onCreate()
+~ void onUpdate()
+}
+
+
+class com.edlabcode.hosteo.exception.ProfileConflictException {
+}
+class com.edlabcode.hosteo.dto.LoginRequest {
+- String email
+- String password
++ String toString()
++ String email()
++ String password()
+}
+
+
+interface com.edlabcode.hosteo.repository.AvailabilityBlockRepository {
+~ long conflicts(Long,LocalDate,LocalDate)
+~ List<AvailabilityBlock> calendar(Long,LocalDate,LocalDate)
+~ long activeCount(Long)
+}
+
+class com.edlabcode.hosteo.dto.AssignRoleRequest {
+- RoleCode roleCode
+- Long version
++ RoleCode roleCode()
++ Long version()
+}
+
+
+class com.edlabcode.hosteo.dto.RegisterRequest {
+- String email
+- String password
+- String firstName
+- String lastName
+- String phone
++ String toString()
++ String lastName()
++ String email()
++ String firstName()
++ String password()
++ String phone()
+}
+
+
+interface com.edlabcode.hosteo.repository.PropertyRepository {
+~ Optional<Property> findLockedOwned(Long,Long)
+~ Optional<Property> findLockedById(Long)
+~ Page<Property> findAllByStatus(PropertyStatus,Pageable)
+~ Optional<Property> findByIdAndStatus(Long,PropertyStatus)
+~ java.util.List<Object[]> statusTotals(Long)
+~ Page<Property> findAllByHostId(Long,Pageable)
+~ Optional<Property> findByIdAndHostId(Long,Long)
+~ Optional<Property> findByHostIdAndRegistrationKey(Long,UUID)
+}
+
+enum com.edlabcode.hosteo.entity.ReviewDecision {
++  APPROVED
++  REJECTED
+}
+
+class com.edlabcode.hosteo.dto.StaffUserResponse {
+- Long id
+- String firstName
+- String lastName
+- String email
+- RoleCode roleCode
+- boolean active
+- long version
++ {static} StaffUserResponse from(User)
++ String lastName()
++ String firstName()
++ boolean active()
++ long version()
++ String email()
++ Long id()
++ RoleCode roleCode()
+}
+
+
+class com.edlabcode.hosteo.operations.BookingController {
+- OperationsService operations
++ ResponseEntity<PageResult<BookingView>> list(Jwt,int)
++ ResponseEntity<BookingView> get(Jwt,Long)
+}
+
+
+interface com.edlabcode.hosteo.repository.BookingRepository {
+~ Optional<Booking> findByGuestIdAndRegistrationKey(Long,UUID)
+~ long conflicts(Long,LocalDate,LocalDate)
+~ List<Booking> occupied(Long,LocalDate,LocalDate)
+~ Page<Booking> scoped(Long,Long,Pageable)
+~ List<Object[]> statusTotals(Long)
+~ List<Object[]> amountTotals(Long)
+~ long upcoming(Long,LocalDate)
+}
+
+class com.edlabcode.hosteo.entity.SimulatedPayment {
+- Long id
+- Booking booking
+- UUID reference
+- PaymentStatus status
+- Instant processedAt
+- Instant createdAt
+- Instant updatedAt
+- long version
+~ void create()
+~ void update()
+}
+
+
+class com.edlabcode.hosteo.controller.PropertyReviewController {
+- PropertyReviewService reviews
++ ResponseEntity<PropertyReviewService.PendingPage> list(int)
++ ResponseEntity<PropertyResponse> decide(Jwt,Long,ReviewPropertyRequest)
++ ResponseEntity<PendingPropertyResponse> get(Long)
+}
+
+
+class com.edlabcode.hosteo.service.RegistrationService {
+- UserRepository users
+- RoleRepository roles
+- PasswordEncoder passwordEncoder
++ UserResponse register(RegisterRequest)
+}
+
+
+class com.edlabcode.hosteo.BackendApplication {
++ {static} void main(String[])
+}
+
+class com.edlabcode.hosteo.dto.UpdatePropertyRequest {
+- String title
+- String description
+- PropertyType type
+- String address
+- String city
+- String district
+- Integer capacity
+- Integer bedrooms
+- Integer beds
+- Integer bathrooms
+- BigDecimal nightlyRate
+- String currency
+- Long version
++ CreatePropertyRequest information()
++ String title()
++ PropertyType type()
++ String currency()
++ Long version()
++ BigDecimal nightlyRate()
++ String district()
++ Integer beds()
++ Integer bathrooms()
++ String address()
++ Integer bedrooms()
++ String city()
++ Integer capacity()
++ String description()
+}
+
+
+class com.edlabcode.hosteo.operations.AdminBookingController {
+- OperationsService operations
++ ResponseEntity<BookingView> status(Jwt,Long,StatusRequest)
++ ResponseEntity<List<StatusHistoryView>> history(Jwt,Long)
++ ResponseEntity<PageResult<PaymentRecord>> payments(Jwt,int)
+}
+
+
+class com.edlabcode.hosteo.dto.UpdateProfileRequest {
+- String firstName
+- String lastName
+- String email
+- String phone
+- Gender gender
+- LocalDate dateOfBirth
+- String biography
+- String occupation
+- String location
+- List<LanguageRequest> languages
+- List<String> interests
+- Long version
++ String lastName()
++ String email()
++ String biography()
++ String location()
++ String firstName()
++ LocalDate dateOfBirth()
++ String occupation()
++ Gender gender()
++ List<LanguageRequest> languages()
++ Long version()
++ List<String> interests()
++ String phone()
+}
+
+
+class com.edlabcode.hosteo.controller.HostPropertyController {
+- HostPropertyService properties
++ ResponseEntity<PropertyResponse> create(Jwt,UUID,CreatePropertyRequest)
++ ResponseEntity<HostPropertyListResponse> list(Jwt,int)
++ ResponseEntity<PropertyResponse> submit(Jwt,Long,SubmitPropertyRequest)
++ ResponseEntity<PropertyResponse> update(Jwt,Long,UpdatePropertyRequest)
++ ResponseEntity<PropertyResponse> get(Jwt,Long)
+}
+
+
+class com.edlabcode.hosteo.dto.PendingPropertyResponse {
+- PropertyResponse property
+- Host host
++ {static} PendingPropertyResponse from(Property)
++ PropertyResponse property()
++ Host host()
+}
+
+
+class com.edlabcode.hosteo.dto.PendingPropertyResponse$Host {
+- Long id
+- String firstName
+- String lastName
+- String email
++ String lastName()
++ String firstName()
++ String email()
++ Long id()
+}
+
+
+class com.edlabcode.hosteo.entity.AvailabilityBlock {
+- Long id
+- Property property
+- User createdBy
+- LocalDate startDate
+- LocalDate endDate
+- String reason
+- boolean active
+- User deactivatedBy
+- Instant deactivatedAt
+- Instant createdAt
+- Instant updatedAt
+- long version
+~ void create()
+~ void update()
+}
+
+
+enum com.edlabcode.hosteo.entity.BookingStatus {
++  CONFIRMED
++  IN_PROGRESS
++  COMPLETED
++  CANCELLED
+}
+
+class com.edlabcode.hosteo.operations.OperationsContracts {
+}
+class com.edlabcode.hosteo.operations.OperationsContracts$PublicProperty {
+- Long id
+- String title
+- String description
+- PropertyType type
+- String address
+- String city
+- String district
+- int capacity
+- int bedrooms
+- int beds
+- int bathrooms
+- BigDecimal nightlyRate
+- String currency
+- long version
++ {static} PublicProperty from(Property)
++ PropertyType type()
++ int bedrooms()
++ int bathrooms()
++ String description()
++ String address()
++ String city()
++ long version()
++ int beds()
++ Long id()
++ BigDecimal nightlyRate()
++ String currency()
++ String title()
++ String district()
++ int capacity()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$BlockRequest {
+- LocalDate startDate
+- LocalDate endDate
+- String reason
++ LocalDate endDate()
++ LocalDate startDate()
++ String reason()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$VersionRequest {
+- Long version
++ Long version()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$BookingRequest {
+- Long propertyId
+- LocalDate checkIn
+- LocalDate checkOut
+- Integer guestCount
+- Long propertyVersion
++ Long propertyVersion()
++ Integer guestCount()
++ Long propertyId()
++ LocalDate checkOut()
++ LocalDate checkIn()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$StatusRequest {
+- BookingStatus status
+- Long version
+- String comment
++ Long version()
++ BookingStatus status()
++ String comment()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$PageResult {
+- List<T> items
+- long total
+- int page
+- int pages
++ long total()
++ List<T> items()
++ int page()
++ int pages()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$Identity {
+- Long id
+- String name
+- String email
++ {static} Identity from(User)
++ String name()
++ String email()
++ Long id()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$BlockView {
+- Long id
+- Long propertyId
+- LocalDate startDate
+- LocalDate endDate
+- String reason
+- boolean active
+- Long createdById
+- Instant createdAt
+- long version
++ {static} BlockView from(AvailabilityBlock)
++ Long propertyId()
++ String reason()
++ Instant createdAt()
++ Long createdById()
++ boolean active()
++ long version()
++ Long id()
++ LocalDate startDate()
++ LocalDate endDate()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$PaymentView {
+- Long id
+- Long bookingId
+- UUID reference
+- PaymentStatus status
+- BigDecimal amount
+- String currency
+- Instant processedAt
+- long version
++ {static} PaymentView from(SimulatedPayment)
++ PaymentStatus status()
++ Long bookingId()
++ String currency()
++ Instant processedAt()
++ UUID reference()
++ BigDecimal amount()
++ long version()
++ Long id()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$BookingView {
+- Long id
+- UUID confirmationCode
+- Long propertyId
+- String propertyTitle
+- String district
+- Identity guest
+- Identity host
+- LocalDate checkIn
+- LocalDate checkOut
+- int guestCount
+- BigDecimal nightlyRate
+- BigDecimal totalAmount
+- String currency
+- BookingStatus status
+- Instant confirmedAt
+- Instant createdAt
+- long version
+- PaymentView payment
++ {static} BookingView from(Booking,SimulatedPayment)
++ Long propertyId()
++ Identity host()
++ LocalDate checkIn()
++ Instant createdAt()
++ int guestCount()
++ BookingStatus status()
++ long version()
++ PaymentView payment()
++ String propertyTitle()
++ Long id()
++ BigDecimal nightlyRate()
++ Identity guest()
++ UUID confirmationCode()
++ String currency()
++ BigDecimal totalAmount()
++ String district()
++ LocalDate checkOut()
++ Instant confirmedAt()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$PaymentRecord {
+- PaymentView payment
+- UUID confirmationCode
+- String propertyTitle
+- Identity guest
++ {static} PaymentRecord from(SimulatedPayment)
++ Identity guest()
++ UUID confirmationCode()
++ PaymentView payment()
++ String propertyTitle()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$OccupiedRange {
+- LocalDate startDate
+- LocalDate endDate
+- String kind
++ String kind()
++ LocalDate startDate()
++ LocalDate endDate()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$CalendarView {
+- Long propertyId
+- LocalDate startDate
+- LocalDate endDate
+- List<BlockView> blocks
+- List<OccupiedRange> reservations
++ Long propertyId()
++ List<BlockView> blocks()
++ List<OccupiedRange> reservations()
++ LocalDate startDate()
++ LocalDate endDate()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$Availability {
+- Long propertyId
+- long propertyVersion
+- LocalDate checkIn
+- LocalDate checkOut
+- int guestCount
+- boolean available
+- long nights
+- BigDecimal nightlyRate
+- BigDecimal totalAmount
+- String currency
++ Long propertyId()
++ LocalDate checkIn()
++ BigDecimal nightlyRate()
++ long nights()
++ int guestCount()
++ String currency()
++ long propertyVersion()
++ BigDecimal totalAmount()
++ boolean available()
++ LocalDate checkOut()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$Summary {
+- long properties
+- Map<String,Long> propertiesByStatus
+- long bookings
+- Map<String,Long> bookingsByStatus
+- long upcomingBookings
+- long activeBlocks
+- long payments
+- Map<String,BigDecimal> bookedAmountByCurrency
+- Map<String,BigDecimal> paidAmountByCurrency
++ long upcomingBookings()
++ long activeBlocks()
++ long properties()
++ Map<String,Long> propertiesByStatus()
++ Map<String,BigDecimal> paidAmountByCurrency()
++ long payments()
++ Map<String,Long> bookingsByStatus()
++ Map<String,BigDecimal> bookedAmountByCurrency()
++ long bookings()
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsContracts$StatusHistoryView {
+- BookingStatus previousStatus
+- BookingStatus newStatus
+- String comment
+- Instant changedAt
++ {static} StatusHistoryView from(BookingStatusHistory)
++ String comment()
++ BookingStatus previousStatus()
++ Instant changedAt()
++ BookingStatus newStatus()
+}
+
+
+class com.edlabcode.hosteo.dto.SubmitPropertyRequest {
+- Long version
++ Long version()
+}
+
+
+enum com.edlabcode.hosteo.entity.LanguageLevel {
++  BASIC
++  INTERMEDIATE
++  ADVANCED
++  NATIVE
+}
+
+class com.edlabcode.hosteo.dto.LanguageRequest {
+- String code
+- LanguageLevel proficiency
++ LanguageLevel proficiency()
++ String code()
+}
+
+
+enum com.edlabcode.hosteo.entity.RoleCode {
++  ADMINISTRATOR
++  SUPPORT
++  HOST
++  GUEST
+}
+
+class com.edlabcode.hosteo.entity.ProfileLanguage {
+- String code
+- LanguageLevel proficiency
+}
+
+class com.edlabcode.hosteo.config.JwtProperties {
+- String secret
+- String issuer
+- Duration ttl
++ String toString()
++ String secret()
++ String issuer()
++ Duration ttl()
+}
+
+
+class com.edlabcode.hosteo.service.HostPropertyService {
+- UserRepository users
+- PropertyRepository properties
+- jakarta.validation.Validator validator
++ Registration create(String,long,UUID,CreatePropertyRequest)
++ PropertyResponse update(String,long,Long,UpdatePropertyRequest)
++ PropertyResponse submit(String,long,Long,SubmitPropertyRequest)
++ HostPropertyListResponse list(String,int)
++ PropertyResponse get(String,Long)
+}
+
+
+class com.edlabcode.hosteo.service.HostPropertyService$Registration {
+- PropertyResponse property
+- boolean created
++ PropertyResponse property()
++ boolean created()
+}
+
+
+class com.edlabcode.hosteo.entity.Booking {
+- Long id
+- UUID confirmationCode
+- Property property
+- User guest
+- LocalDate checkIn
+- LocalDate checkOut
+- int guestCount
+- BigDecimal appliedNightlyRate
+- BigDecimal totalAmount
+- String currency
+- BookingStatus status
+- UUID registrationKey
+- long quotedPropertyVersion
+- Instant confirmedAt
+- Instant createdAt
+- Instant updatedAt
+- long version
+~ void create()
+~ void update()
+}
+
+
+class com.edlabcode.hosteo.entity.Property {
+- Long id
+- User host
+- String title
+- String description
+- PropertyType type
+- String address
+- String city
+- String district
+- int capacity
+- int bedrooms
+- int beds
+- int bathrooms
+- BigDecimal nightlyRate
+- String currency
+- PropertyStatus status
+- UUID registrationKey
+- Instant createdAt
+- Instant updatedAt
+- Instant submittedAt
+- Instant publishedAt
+- Instant reviewedAt
+- String reviewComment
+- long version
+~ void onCreate()
+~ void onUpdate()
+}
+
+
+class com.edlabcode.hosteo.service.AuthService {
+- UserRepository users
+- PasswordEncoder passwordEncoder
+- TokenService tokens
+- String dummyPasswordHash
++ LoginResponse login(LoginRequest)
++ UserResponse currentUser(String)
+}
+
+
+class com.edlabcode.hosteo.exception.GlobalExceptionHandler {
++ ResponseEntity<ApiError> parameterValidation(Exception)
++ ResponseEntity<ApiError> status(org.springframework.web.server.ResponseStatusException)
++ ResponseEntity<ApiError> invalidParameter(Exception)
++ ResponseEntity<ApiError> invalidProfile(InvalidProfileException)
++ ResponseEntity<ApiError> profileConflict(Exception)
++ ResponseEntity<ApiError> duplicateEmail(DuplicateEmailException)
++ ResponseEntity<ApiError> invalidRegistration(InvalidRegistrationException)
++ ResponseEntity<ApiError> credentials(BadCredentialsException)
++ ResponseEntity<ApiError> validation(MethodArgumentNotValidException)
++ ResponseEntity<ApiError> malformedBody(HttpMessageNotReadableException)
+}
+
+enum com.edlabcode.hosteo.entity.PaymentStatus {
++  PENDING
++  APPROVED
++  REJECTED
+}
+
+interface com.edlabcode.hosteo.repository.RoleRepository {
+~ Optional<Role> findByCode(RoleCode)
+}
+
+interface com.edlabcode.hosteo.repository.SimulatedPaymentRepository {
+~ Optional<SimulatedPayment> findByBookingId(Long)
+~ List<SimulatedPayment> findByBookingIdIn(Collection<Long>)
+~ Page<SimulatedPayment> findAll(Pageable)
+~ List<Object[]> amountTotals(Long)
+~ long scopedCount(Long)
+}
+
+class com.edlabcode.hosteo.security.SecurityErrorHandler {
+- ObjectMapper mapper
++ void commence(HttpServletRequest,HttpServletResponse,AuthenticationException)
++ void handle(HttpServletRequest,HttpServletResponse,AccessDeniedException)
+- void write(HttpServletResponse,int,String,String)
+}
+
+
+enum com.edlabcode.hosteo.entity.PropertyType {
++  APARTMENT
++  HOUSE
++  ROOM
+}
+
+class com.edlabcode.hosteo.security.AccountJwtConverter {
+- UserRepository users
++ AbstractAuthenticationToken convert(Jwt)
+}
+
+
+class com.edlabcode.hosteo.operations.OperationsService {
+- PropertyRepository properties
+- UserRepository users
+- BookingRepository bookings
+- AvailabilityBlockRepository blocks
+- SimulatedPaymentRepository payments
+- BookingStatusHistoryRepository history
+- {static} ZoneId LIMA
+- {static} BigDecimal MAX_AMOUNT
+- jakarta.persistence.EntityManager entityManager
+- ResponseStatusException fail(HttpStatus,String)
+- User actor(Jwt,boolean,RoleCode)
+- Pageable page(int)
+- PageResult<R> result(Page<T>,Function<T,R>)
+- long range(LocalDate,LocalDate,boolean)
+- Property property(Long,boolean)
+- void manage(User,Property)
+- boolean free(Long,LocalDate,LocalDate)
+- BigDecimal total(Property,long)
+- BookingView view(Booking)
+- Booking owned(User,Long)
++ PageResult<PublicProperty> catalog(int)
++ PublicProperty catalogProperty(Long)
++ Availability availability(Jwt,Long,LocalDate,LocalDate,int)
++ BookingView book(Jwt,UUID,BookingRequest)
++ PageResult<BookingView> bookingList(Jwt,int)
++ BookingView booking(Jwt,Long)
++ List<StatusHistoryView> statusHistory(Jwt,Long)
+- void record(Booking,User,BookingStatus,BookingStatus,String)
++ BookingView status(Jwt,Long,StatusRequest)
+- void refreshBooking(Booking)
++ PaymentView pay(Jwt,Long,VersionRequest)
++ PaymentView payment(Jwt,Long)
++ PageResult<PaymentRecord> paymentList(Jwt,int)
++ PageResult<PropertyResponse> managedProperties(Jwt,int)
++ CalendarView calendar(Jwt,Long,LocalDate,LocalDate)
++ BlockView block(Jwt,Long,BlockRequest)
++ BlockView deactivate(Jwt,Long,Long,VersionRequest)
+- Map<String,Long> counts(List<Object[]>)
+- Map<String,BigDecimal> amounts(List<Object[]>)
++ Summary summary(Jwt)
+}
+
+
+class com.edlabcode.hosteo.controller.StaffController {
+- StaffService staff
+- ResponseEntity<T> response(T)
++ ResponseEntity<StaffService.Summary> summary()
++ ResponseEntity<RoleCode[]> roles()
++ ResponseEntity<StaffService.UserPage> users(String,int)
++ ResponseEntity<StaffUserResponse> assign(Long,Jwt,AssignRoleRequest)
++ ResponseEntity<StaffUserResponse> updateStatus(Long,Jwt,UpdateUserStatusRequest)
+}
+
+
+class com.edlabcode.hosteo.operations.ManagementController {
+- OperationsService operations
+- ResponseEntity<T> reply(T)
++ ResponseEntity<PageResult<PropertyResponse>> properties(Jwt,int)
++ ResponseEntity<CalendarView> calendar(Jwt,Long,LocalDate,LocalDate)
++ ResponseEntity<BlockView> block(Jwt,Long,BlockRequest)
++ ResponseEntity<BlockView> deactivate(Jwt,Long,Long,VersionRequest)
++ ResponseEntity<Summary> summary(Jwt)
+}
+
+
+class com.edlabcode.hosteo.dto.UpdateUserStatusRequest {
+- Boolean active
+- Long version
++ Long version()
++ Boolean active()
+}
+
+
+class com.edlabcode.hosteo.config.RoleInitializer {
+- RoleRepository roles
++ void run(ApplicationArguments)
+}
+
+
+class com.edlabcode.hosteo.exception.InvalidRegistrationException {
+}
+class com.edlabcode.hosteo.dto.ApiError {
+- Instant timestamp
+- int status
+- String code
+- String message
+- Map<String,String> fieldErrors
++ {static} ApiError of(int,String,String)
++ String message()
++ Instant timestamp()
++ int status()
++ String code()
++ Map<String,String> fieldErrors()
+}
+
+
+interface com.edlabcode.hosteo.repository.UserRepository {
+~ Optional<User> findLockedById(Long)
+~ org.springframework.data.domain.Page<User> findByEmailContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(String,String,String,org.springframework.data.domain.Pageable)
+~ long countByRoleCode(com.edlabcode.hosteo.entity.RoleCode)
+~ boolean existsByEmail(String)
+~ boolean existsByEmailAndIdNot(String,Long)
+~ Optional<User> findByEmail(String)
+~ Optional<User> findById(Long)
+}
+
+class com.edlabcode.hosteo.config.SecurityConfig {
++ PasswordEncoder passwordEncoder()
++ String dummyPasswordHash(PasswordEncoder)
++ SecretKey jwtKey(JwtProperties)
++ JwtEncoder jwtEncoder(SecretKey)
++ JwtDecoder jwtDecoder(SecretKey,JwtProperties)
++ SecurityFilterChain securityFilterChain(HttpSecurity,AccountJwtConverter,SecurityErrorHandler)
+}
+
+class com.edlabcode.hosteo.operations.CatalogController {
+- OperationsService operations
++ ResponseEntity<PageResult<PublicProperty>> list(int)
++ ResponseEntity<PublicProperty> get(Long)
+}
+
+
+class com.edlabcode.hosteo.dto.PropertyResponse {
+- Long id
+- Long hostId
+- String title
+- String description
+- PropertyType type
+- String address
+- String city
+- String district
+- int capacity
+- int bedrooms
+- int beds
+- int bathrooms
+- BigDecimal nightlyRate
+- String currency
+- PropertyStatus status
+- Instant createdAt
+- Instant updatedAt
+- long version
+- Instant submittedAt
+- Instant publishedAt
+- Instant reviewedAt
+- String reviewComment
++ {static} PropertyResponse from(Property)
++ CreatePropertyRequest registration()
++ PropertyType type()
++ Instant publishedAt()
++ String reviewComment()
++ int bedrooms()
++ int bathrooms()
++ Instant createdAt()
++ String description()
++ String address()
++ String city()
++ long version()
++ int beds()
++ Instant submittedAt()
++ Long id()
++ Instant updatedAt()
++ BigDecimal nightlyRate()
++ PropertyStatus status()
++ Long hostId()
++ String currency()
++ String title()
++ Instant reviewedAt()
++ String district()
++ int capacity()
+}
+
+
+class com.edlabcode.hosteo.dto.UserResponse {
+- Long id
+- String email
+- String firstName
+- String lastName
+- Long roleId
+- com.edlabcode.hosteo.entity.RoleCode roleCode
++ {static} UserResponse from(User)
++ String lastName()
++ Long roleId()
++ String firstName()
++ com.edlabcode.hosteo.entity.RoleCode roleCode()
++ String email()
++ Long id()
+}
+
+
+interface com.edlabcode.hosteo.repository.PropertyReviewRepository {
+~ Optional<PropertyReview> findByPropertyIdAndPropertyVersion(Long,long)
+}
+
+class com.edlabcode.hosteo.exception.InvalidProfileException {
+}
+class com.edlabcode.hosteo.service.UserProfileService {
+- UserRepository users
++ ProfileResponse getProfile(String)
++ ProfileResponse updateProfile(String,UpdateProfileRequest)
+- User getUser(String)
+- String clean(String)
+}
+
+
+class com.edlabcode.hosteo.dto.LoginResponse {
+- String accessToken
+- LoginUserResponse user
++ LoginUserResponse user()
++ String accessToken()
+}
+
+
+class com.edlabcode.hosteo.operations.GuestBookingController {
+- OperationsService operations
++ ResponseEntity<Availability> availability(Jwt,Long,LocalDate,LocalDate,int)
++ ResponseEntity<BookingView> book(Jwt,UUID,BookingRequest)
++ ResponseEntity<PaymentView> pay(Jwt,Long,VersionRequest)
++ ResponseEntity<PaymentView> payment(Jwt,Long)
+}
+
+
+class com.edlabcode.hosteo.controller.UserProfileController {
+- UserProfileService profiles
++ ResponseEntity<ProfileResponse> getProfile(Jwt)
++ ResponseEntity<ProfileResponse> updateProfile(Jwt,UpdateProfileRequest)
+}
+
+
+class com.edlabcode.hosteo.config.OpenApiConfig {
++ OpenAPI hosteoOpenApi()
+}
+
+class com.edlabcode.hosteo.exception.DuplicateEmailException {
+}
+class com.edlabcode.hosteo.controller.AuthController {
+- AuthService authService
+- RegistrationService registrationService
++ ResponseEntity<UserResponse> register(RegisterRequest)
++ ResponseEntity<LoginResponse> login(LoginRequest)
++ ResponseEntity<UserResponse> me(Jwt)
+}
+
+
+class com.edlabcode.hosteo.dto.CreatePropertyRequest {
+- String title
+- String description
+- PropertyType type
+- String address
+- String city
+- String district
+- Integer capacity
+- Integer bedrooms
+- Integer beds
+- Integer bathrooms
+- BigDecimal nightlyRate
+- String currency
++ CreatePropertyRequest normalized()
++ String title()
++ PropertyType type()
++ Integer bathrooms()
++ String currency()
++ String address()
++ BigDecimal nightlyRate()
++ Integer bedrooms()
++ String city()
++ String district()
++ Integer capacity()
++ String description()
++ Integer beds()
+}
+
+
+class com.edlabcode.hosteo.entity.PropertyReview {
+- Long id
+- Property property
+- User administrator
+- ReviewDecision decision
+- String comment
+- long propertyVersion
+- Instant reviewedAt
+}
+
+enum com.edlabcode.hosteo.entity.Gender {
++  FEMALE
++  MALE
++  NON_BINARY
++  OTHER
++  PREFER_NOT_TO_SAY
+}
+
+
+
+org.springframework.data.jpa.repository.JpaRepository <|-- com.edlabcode.hosteo.repository.BookingStatusHistoryRepository
+com.edlabcode.hosteo.service.StaffService +.. com.edlabcode.hosteo.service.StaffService$UserPage
+com.edlabcode.hosteo.service.StaffService +.. com.edlabcode.hosteo.service.StaffService$Summary
+com.edlabcode.hosteo.service.PropertyReviewService +.. com.edlabcode.hosteo.service.PropertyReviewService$PendingPage
+com.edlabcode.hosteo.exception.RuntimeException <|-- com.edlabcode.hosteo.exception.ProfileConflictException
+org.springframework.data.jpa.repository.JpaRepository <|-- com.edlabcode.hosteo.repository.AvailabilityBlockRepository
+org.springframework.data.jpa.repository.JpaRepository <|-- com.edlabcode.hosteo.repository.PropertyRepository
+org.springframework.data.jpa.repository.JpaRepository <|-- com.edlabcode.hosteo.repository.BookingRepository
+com.edlabcode.hosteo.dto.PendingPropertyResponse +.. com.edlabcode.hosteo.dto.PendingPropertyResponse$Host
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$PublicProperty
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$BlockRequest
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$VersionRequest
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$BookingRequest
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$StatusRequest
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$PageResult
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$Identity
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$BlockView
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$PaymentView
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$BookingView
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$PaymentRecord
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$OccupiedRange
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$CalendarView
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$Availability
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$Summary
+com.edlabcode.hosteo.operations.OperationsContracts +.. com.edlabcode.hosteo.operations.OperationsContracts$StatusHistoryView
+com.edlabcode.hosteo.service.HostPropertyService +.. com.edlabcode.hosteo.service.HostPropertyService$Registration
+org.springframework.data.jpa.repository.JpaRepository <|-- com.edlabcode.hosteo.repository.RoleRepository
+org.springframework.data.jpa.repository.JpaRepository <|-- com.edlabcode.hosteo.repository.SimulatedPaymentRepository
+org.springframework.security.web.AuthenticationEntryPoint <|.. com.edlabcode.hosteo.security.SecurityErrorHandler
+org.springframework.security.web.access.AccessDeniedHandler <|.. com.edlabcode.hosteo.security.SecurityErrorHandler
+org.springframework.core.convert.converter.Converter <|.. com.edlabcode.hosteo.security.AccountJwtConverter
+org.springframework.boot.ApplicationRunner <|.. com.edlabcode.hosteo.config.RoleInitializer
+com.edlabcode.hosteo.exception.RuntimeException <|-- com.edlabcode.hosteo.exception.InvalidRegistrationException
+org.springframework.data.jpa.repository.JpaRepository <|-- com.edlabcode.hosteo.repository.UserRepository
+org.springframework.data.jpa.repository.JpaRepository <|-- com.edlabcode.hosteo.repository.PropertyReviewRepository
+com.edlabcode.hosteo.exception.RuntimeException <|-- com.edlabcode.hosteo.exception.InvalidProfileException
+com.edlabcode.hosteo.exception.RuntimeException <|-- com.edlabcode.hosteo.exception.DuplicateEmailException
+@enduml
