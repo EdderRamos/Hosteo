@@ -41,7 +41,7 @@ Login, registro y reservas consumen la API real. La recuperación conserva el fl
 
 El login consume el contrato real (`accessToken`, `user` y `roleId` numérico). Muestra errores de validación, credenciales, red, permisos y servicio, bloquea envíos duplicados y permite mostrar/ocultar contraseña. No hay cuentas ni éxitos simulados en login o registro. La recuperación aún no tiene API.
 
-Vite redirige `/api` al backend local en el puerto 8080. Ver `.env.example` para `VITE_API_URL`; en producción se requiere proxy del hosting o una API que permita CORS. Iniciar el backend desde `backend/` conforme a su README. No se crean usuarios de prueba en la base real: iniciar sesión requiere una cuenta activa con contraseña BCrypt.
+La configuración de la API se centraliza en `src/shared/api/config.ts` y todas las llamadas usan el cliente `shared/api/http.ts`. Ver la configuración local y de producción más abajo. Iniciar el backend desde `backend/` conforme a su README. No se crean usuarios de prueba en la base real: iniciar sesión requiere una cuenta activa con contraseña BCrypt.
 
 La sesión usa `sessionStorage` normalmente y `localStorage` solo si el usuario elige mantenerla activa. Solo persiste el bearer token, nunca la contraseña. Respeta `exp` y revalida con `/auth/me` al recargar o volver a la pestaña; la firma y permisos los valida el backend. Cerrar sesión limpia ambos almacenes. No hay refresh token: la opción de recordar no prolonga los 30 minutos de vigencia. El almacenamiento web está sujeto al riesgo de XSS; una futura sesión mediante cookie HttpOnly requiere cambiar el contrato del backend.
 
@@ -190,3 +190,31 @@ HU-30/HU-31 muestran cantidades por estado, próximas llegadas confirmadas, bloq
 Se usa TanStack Query, React Hook Form, Zod y el diseño existente; el catálogo y las pantallas operativas se cargan de forma diferida. El catálogo real es una dependencia mínima del flujo de reserva, no una implementación de búsqueda avanzada ni fotos inexistentes.
 
 Validación limitada por solicitud del usuario: 3 pruebas frontend focalizadas (recorrido reserva/pago, invalidación/conflictos y catálogo vacío), lint y build. Una revisión de navegador con HTTP simulado cubrió los tres roles, recarga de reserva/pago, bloqueos, seguimiento y resúmenes en móvil 375 px y escritorio 1440 px, sin desbordamientos ni errores JavaScript. No se ejecutó la suite completa anterior ni se crearon reservas reales de prueba.
+
+
+## API en desarrollo y producción
+
+Para desarrollo local, copiar `.env.example` a `.env.local` y reiniciar `npm run dev`:
+
+```dotenv
+VITE_API_URL=/api/v1
+DEV_API_PROXY_URL=http://localhost:8080
+```
+
+La ruta relativa conserva las llamadas existentes y Vite las envía al backend local mediante su proxy. No hay una URL local fija en el código ni se incluye el destino del proxy en el bundle de producción.
+
+En el proyecto de Vercel, ir a **Settings → Environment Variables** y agregar para **Production** (y **Preview**, si corresponde):
+
+```dotenv
+VITE_API_URL=https://hosteo-production.up.railway.app/api/v1
+```
+
+El prefijo `/api/v1` es necesario porque los servicios añaden rutas como `/auth/login`, `/profile` y `/host/properties`. Después de guardar la variable, ejecutar **Redeploy**: Vite incorpora las variables al compilar, no al abrir la página. `DEV_API_PROXY_URL` no se necesita en Vercel. El build requiere una URL HTTPS absoluta y falla con un mensaje claro si falta, evitando publicar un frontend que apunte al servidor local o a la propia web.
+
+El backend debe permitir mediante CORS el origen HTTPS real de la aplicación de Vercel y las solicitudes con `Authorization` y `Content-Type`, incluyendo preflight OPTIONS y los métodos usados por la API. El código del backend revisado no contiene configuración de CORS: la variable de Vercel configura el destino, pero no concede ese permiso. Configurar ese origen en el backend antes de comprobar la integración desde el navegador; no se cambia el backend en esta tarea.
+
+Para compilar localmente contra Railway:
+
+```bash
+VITE_API_URL=https://hosteo-production.up.railway.app/api/v1 npm run build
+```
