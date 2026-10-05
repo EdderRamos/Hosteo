@@ -1,6 +1,6 @@
 # Documentación técnica de Hosteo
 
-![Logo de Hosteo](images/hosteo-logo.png)
+![Logo de Hosteo](	https://hosteo.pe/logo-horizontal.png)
 
 **Proyecto:** sistema web de gestión de propiedades y reservas para Hosteo S.A.C.  
 **Fecha:** 5 de octubre de 2026.  
@@ -14,7 +14,7 @@ La planificación de referencia contiene HU-01 a HU-39. Las integraciones produc
 
 ## 2. Arquitectura
 
-![Arquitectura del proyecto Hosteo](images/architecture.svg)
+![Arquitectura del proyecto Hosteo](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTnyJKeIR3yoXDEUXapKElufbgOP5sf1dhngEiHjoW5KC1H18HaNz8LKo0&s=10)
 
 El frontend presenta las pantallas y consume una API REST mediante JSON. El backend autentica, autoriza, valida las operaciones y accede a PostgreSQL mediante JPA/Hibernate. Neon aloja la base utilizada para desarrollo. Swagger publica el contrato de la API y Actuator ofrece un endpoint de salud.
 
