@@ -12,6 +12,17 @@ import java.util.LinkedHashMap;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(InvalidProfileException.class)
+    public ResponseEntity<ApiError> invalidProfile(InvalidProfileException exception) {
+        return ResponseEntity.badRequest().body(ApiError.of(400, "INVALID_PROFILE", exception.getMessage()));
+    }
+
+    @ExceptionHandler({ProfileConflictException.class, org.springframework.orm.ObjectOptimisticLockingFailureException.class})
+    public ResponseEntity<ApiError> profileConflict(Exception exception) {
+        return ResponseEntity.status(409).body(ApiError.of(409, "PROFILE_CONFLICT",
+                "Your profile has changed. Reload it before saving again"));
+    }
+
     @ExceptionHandler(DuplicateEmailException.class)
     public ResponseEntity<ApiError> duplicateEmail(DuplicateEmailException exception) {
         return ResponseEntity.status(409).body(ApiError.of(409, "EMAIL_ALREADY_EXISTS", exception.getMessage()));

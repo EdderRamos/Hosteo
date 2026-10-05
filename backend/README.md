@@ -67,3 +67,13 @@ Email must be unique. Passwords are hashed with BCrypt and limited to 72 UTF-8 b
 Success returns 201 with the user identity and numeric `roleId`. Invalid input returns 400; duplicate email returns 409. Sign in separately through `/api/v1/auth/login`. No default users are created.
 
 Local development uses `DB_DDL_AUTO=update` to create missing columns and preserve accounts. The fallback remains `validate`. The existing four roles must be present in the database.
+
+## HU-03 customer profile
+
+`GET /api/v1/customer/profile` reads the authenticated profile. `PUT /api/v1/customer/profile` replaces editable fields and returns the saved profile. Both require a bearer token and the GUEST or HOST role. Identity is taken from the token; no user ID is accepted in the path or payload.
+
+Fields: `firstName`, `lastName`, `email`, `phone`, `gender`, `dateOfBirth`, `biography`, `occupation`, `location`, `avatarUrl`, `languages`, `interests`, `version`. Names and email are required. Optional scalar fields may be null to clear them. Lists are required and may be empty. Each language has `code` such as `es` or `en` and `proficiency`: BASIC, INTERMEDIATE, ADVANCED or NATIVE. Gender values are FEMALE, MALE, NON_BINARY, OTHER and PREFER_NOT_TO_SAY.
+
+Biography is limited to 500 characters, dates of birth must be in the past, avatar URLs must use HTTPS, and duplicate languages/interests are rejected. Avatar files must already be uploaded; this endpoint stores a URL only. Email remains unique and normalized. Verification of contact details is not implemented by this endpoint.
+
+Use the `version` returned by GET to save changes. Stale versions return 409 PROFILE_CONFLICT. Role, activation state, password, membership date and user ID are not editable. Profile updates and collections are saved transactionally. Hibernate update adds the profile columns and `user_languages`/`user_interests` tables in local development.
