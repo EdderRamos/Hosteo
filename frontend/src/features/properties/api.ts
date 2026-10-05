@@ -25,3 +25,11 @@ export async function updateProperty(token: string, id: number, values: Property
   if (!parsed.success) throw new ApiError(502, 'No pudimos confirmar el guardado. Consulta la información actual antes de volver a guardar.')
   return parsed.data
 }
+
+export async function submitProperty(token: string, id: number, version: number) {
+  const response = await request(`/host/properties/${id}/submit`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ version }) })
+  const parsed = propertyResponseSchema.safeParse(response)
+  if (!parsed.success || parsed.data.id !== id || parsed.data.status !== 'PENDING_REVIEW' || !parsed.data.submittedAt)
+    throw new ApiError(502, 'No pudimos confirmar el envío. Consulta el estado actual o reintenta la solicitud.')
+  return parsed.data
+}

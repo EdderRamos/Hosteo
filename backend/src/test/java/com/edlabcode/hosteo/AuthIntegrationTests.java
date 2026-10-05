@@ -504,11 +504,95 @@ class AuthIntegrationTests {
             var property = registeredProperties.findById(created.get("id").asLong()).orElseThrow(); property.setStatus(status); property = registeredProperties.saveAndFlush(property);
             payload.put("version", property.getVersion()); payload.put("title", "Title " + status.name());
             var updated = request("PUT", path, mapper.writeValueAsString(payload), token);
-            assertEquals(200, updated.statusCode()); assertEquals(status.name(), json(updated).get("status").asText());
+            if (status == com.edlabcode.hosteo.entity.PropertyStatus.PENDING_REVIEW) assertEquals(409, updated.statusCode());
+            else { assertEquals(200, updated.statusCode()); assertEquals(status.name(), json(updated).get("status").asText()); }
         }
         assertEquals(404, request("PUT", "/api/v1/host/properties/999999", mapper.writeValueAsString(payload), token).statusCode());
         host = users.findById(host.getId()).orElseThrow(); host.setActive(false); users.saveAndFlush(host);
         assertEquals(401, request("PUT", path, mapper.writeValueAsString(payload), token).statusCode());
+    }
+
+    @Test
+    void submissionTransitionsOwnedPropertiesAndRetriesWithoutPublishing() throws Exception {
+        var host = createUser("host@hosteo.test", RoleCode.HOST, true);
+        String token = json(login(host.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        var created = json(request("POST", "/api/v1/host/properties", mapper.writeValueAsString(propertyPayload()), token, java.util.UUID.randomUUID().toString()));
+        String path = "/api/v1/host/properties/" + created.get("id").asLong();
+        String body = mapper.writeValueAsString(Map.of("version", created.get("version").asLong()));
+        var response = request("POST", path + "/submit", body, token);
+        assertEquals(200, response.statusCode()); assertEquals("no-store", response.headers().firstValue("cache-control").orElseThrow());
+        var submitted = json(response);
+        assertEquals("PENDING_REVIEW", submitted.get("status").asText()); assertFalse(submitted.get("submittedAt").isNull());
+        assertEquals(created.get("version").asLong() + 1, submitted.get("version").asLong());
+        assertEquals(created.get("title").asText(), submitted.get("title").asText());
+        assertEquals(created.get("createdAt").asText(), submitted.get("createdAt").asText());
+        var repeated = request("POST", path + "/submit", body, token);
+        assertEquals(200, repeated.statusCode()); assertEquals(submitted, json(repeated));
+        assertEquals(submitted, json(request("GET", path, null, token)));
+        assertEquals("PENDING_REVIEW", json(request("GET", "/api/v1/host/properties", null, token)).get("items").get(0).get("status").asText());
+        var edit = propertyPayload(); edit.put("version", submitted.get("version").asLong()); edit.put("title", "Changed during review");
+        assertEquals(409, request("PUT", path, mapper.writeValueAsString(edit), token).statusCode());
+        var property = registeredProperties.findById(created.get("id").asLong()).orElseThrow();
+        property.setStatus(com.edlabcode.hosteo.entity.PropertyStatus.PUBLISHED); property = registeredProperties.saveAndFlush(property);
+        assertEquals(409, request("POST", path + "/submit", mapper.writeValueAsString(Map.of("version", property.getVersion())), token).statusCode());
+        property.setStatus(com.edlabcode.hosteo.entity.PropertyStatus.REJECTED); property = registeredProperties.saveAndFlush(property);
+        var resubmitted = request("POST", path + "/submit", mapper.writeValueAsString(Map.of("version", property.getVersion())), token);
+        assertEquals(200, resubmitted.statusCode()); assertEquals("PENDING_REVIEW", json(resubmitted).get("status").asText());
+        assertNotEquals(submitted.get("submittedAt").asText(), json(resubmitted).get("submittedAt").asText());
+        assertEquals(409, request("POST", path + "/submit", body, token).statusCode());
+    }
+
+    @Test
+    void submissionChecksOwnershipPermissionsVersionAndStoredInformation() throws Exception {
+        var host = createUser("host@hosteo.test", RoleCode.HOST, true);
+        var other = createUser("other@hosteo.test", RoleCode.HOST, true);
+        String token = json(login(host.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String otherToken = json(login(other.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        var created = json(request("POST", "/api/v1/host/properties", mapper.writeValueAsString(propertyPayload()), token, java.util.UUID.randomUUID().toString()));
+        String path = "/api/v1/host/properties/" + created.get("id").asLong() + "/submit";
+        String body = "{\"version\":0}";
+        assertEquals(404, request("POST", path, body, otherToken).statusCode());
+        assertEquals(404, request("POST", "/api/v1/host/properties/999999/submit", body, token).statusCode());
+        assertEquals(401, request("POST", path, body, null).statusCode());
+        for (RoleCode role : new RoleCode[] {RoleCode.GUEST, RoleCode.SUPPORT, RoleCode.ADMINISTRATOR}) {
+            var user = createUser(role.name().toLowerCase() + "@hosteo.test", role, true);
+            String rejected = json(login(user.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+            assertEquals(403, request("POST", path, body, rejected).statusCode());
+        }
+        for (String invalid : new String[] {"{}", "{\"version\":-1}", "{\"version\":null}", "bad json"})
+            assertEquals(400, request("POST", path, invalid, token).statusCode());
+        assertEquals(409, request("POST", path, "{\"version\":999}", token).statusCode());
+        var property = registeredProperties.findById(created.get("id").asLong()).orElseThrow();
+        property.setDescription(" "); property = registeredProperties.saveAndFlush(property);
+        assertEquals(400, request("POST", path, mapper.writeValueAsString(Map.of("version", property.getVersion())), token).statusCode());
+        property = registeredProperties.findById(property.getId()).orElseThrow();
+        assertEquals(com.edlabcode.hosteo.entity.PropertyStatus.DRAFT, property.getStatus()); assertNull(property.getSubmittedAt());
+        host = users.findById(host.getId()).orElseThrow(); host.setActive(false); users.saveAndFlush(host);
+        assertEquals(401, request("POST", path, body, token).statusCode());
+    }
+
+    @Test
+    void concurrentSubmissionAndEditingNeverSendUnconfirmedChanges() throws Exception {
+        var host = createUser("host@hosteo.test", RoleCode.HOST, true);
+        String token = json(login(host.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        var created = json(request("POST", "/api/v1/host/properties", mapper.writeValueAsString(propertyPayload()), token, java.util.UUID.randomUUID().toString()));
+        String path = "/api/v1/host/properties/" + created.get("id").asLong();
+        var payload = propertyPayload(); payload.put("version", 0); payload.put("title", "Concurrent change");
+        String editBody = mapper.writeValueAsString(payload);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var submit = executor.submit(() -> { start.await(); return request("POST", path + "/submit", "{\"version\":0}", token); });
+            var edit = executor.submit(() -> { start.await(); return request("PUT", path, editBody, token); });
+            start.countDown();
+            var submission = submit.get(15, java.util.concurrent.TimeUnit.SECONDS);
+            var edition = edit.get(15, java.util.concurrent.TimeUnit.SECONDS);
+            assertTrue((submission.statusCode() == 200 && edition.statusCode() == 409)
+                    || (submission.statusCode() == 409 && edition.statusCode() == 200));
+            var stored = json(request("GET", path, null, token));
+            assertEquals(submission.statusCode() == 200 ? "PENDING_REVIEW" : "DRAFT", stored.get("status").asText());
+            assertEquals(submission.statusCode() == 200 ? created.get("title").asText() : "Concurrent change", stored.get("title").asText());
+        } finally { executor.shutdownNow(); }
     }
 
     private User createUser(String email, RoleCode code, boolean active) {

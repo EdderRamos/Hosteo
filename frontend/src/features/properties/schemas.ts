@@ -14,6 +14,7 @@ export const propertyResponseSchema = propertySchema.extend({
   id: z.number().int().positive(), hostId: z.number().int().positive(),
   status: z.enum(['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'REJECTED']),
   createdAt: z.string().refine(value => Number.isFinite(Date.parse(value))), updatedAt: z.string().refine(value => Number.isFinite(Date.parse(value))), version: z.number().int().nonnegative(),
+  submittedAt: z.string().refine(value => Number.isFinite(Date.parse(value))).nullable().optional(),
 })
 export type HostProperty = z.infer<typeof propertyResponseSchema>
 export const typeLabels = { APARTMENT: 'Departamento', HOUSE: 'Casa', ROOM: 'Habitación' }

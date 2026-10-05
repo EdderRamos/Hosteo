@@ -35,6 +35,7 @@ public class Property {
     @Column(name = "registration_key", nullable = false, updatable = false) private UUID registrationKey;
     @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
+    @Column(name = "submitted_at") private Instant submittedAt;
     @Version private long version;
     @PrePersist void onCreate() { createdAt = Instant.now(); updatedAt = createdAt; }
     @PreUpdate void onUpdate() { updatedAt = Instant.now(); }

@@ -139,4 +139,17 @@ Páginas negativas o inválidas devuelven 400; sin sesión válida, 401; otros r
 
 Se bloquean la cuenta del anfitrión y la propiedad en una transacción, se revalidan el acceso y la revisión del JWT y se comprueba la versión. Una versión desactualizada devuelve 409 sin sobrescribir datos. La edición preserva identidad, propietario, fecha de creación, clave de registro y estado; no agrega transiciones de aprobación o publicación que HU-09 no define. Una escritura idéntica con versión vigente no incrementa la versión. No requiere migración adicional.
 
-Las pruebas verifican edición, persistencia, validación, aislamiento, conflictos, permisos, cuentas inactivas y preservación de los cuatro estados. No se editaron propiedades reales para probar el flujo.
+Las pruebas verifican edición, persistencia, validación, aislamiento, conflictos, permisos y cuentas inactivas. Desde HU-10, PENDING_REVIEW bloquea la edición; los demás estados se conservan al editar. No se editaron propiedades reales para probar el flujo.
+
+
+## HU-10: solicitud de validación
+
+`POST /api/v1/host/properties/{id}/submit` recibe `{ "version": 0 }`, obligatoria y no negativa. Solo el HOST activo propietario puede enviar. Devuelve 200 con PropertyResponse, estado PENDING_REVIEW y `submittedAt`, usando no-store. DRAFT y REJECTED permiten enviar; PUBLISHED devuelve 409. Enviar no publica: la decisión administrativa corresponde a HU-11/HU-12.
+
+La transacción bloquea cuenta y propiedad, revalida rol, estado de cuenta y revisión de sesión, compara versión y valida la información principal persistida conforme a HU-07. Una versión desactualizada devuelve 409, datos incompletos 400, una propiedad ajena/inexistente 404 y otros roles 403. Se conserva información, propietario y fecha de creación; se actualizan estado, fecha de envío y versión. El PUT rechaza cualquier edición mientras PENDING_REVIEW para mantener estable la información enviada.
+
+Un reintento sobre PENDING_REVIEW acepta la versión actual o la inmediatamente anterior al envío y devuelve el mismo registro sin cambiar fechas ni versión. Una versión más antigua da 409. No existe publicación automática ni validación de fotos/documentos no definidos en esta HU.
+
+Aplicar `database/migrations/003_property_submission.sql` antes de arrancar con un esquema existente. Añade submitted_at si falta, de forma compatible con 002_properties.sql que ya incluía la columna. Fue aplicada a la base PostgreSQL configurada sin modificar propiedades reales. No hay ejecución automática de migraciones.
+
+Verificación: 24 pruebas backend con H2, incluyendo reenvío tras rechazo, reintentos, permisos, integridad, información incompleta, bloqueo de edición y envío concurrente con edición. La revisión del navegador usa respuestas simuladas.

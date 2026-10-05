@@ -121,7 +121,7 @@ Verificación de esta migración: 44 pruebas frontend, lint y build aprobados; 1
 
 React Hook Form y Zod validan antes del envío; TanStack Query administra creación y consulta. Se conservan los datos ante errores, se deshabilita el formulario durante el guardado y se reutiliza `Idempotency-Key` al reintentar los mismos datos. La confirmación `/host/properties/:id` muestra datos persistidos, se puede recargar y confirma que la propiedad queda como borrador sin publicación. Los datos no se guardan en almacenamiento web. Un 401 termina la sesión.
 
-La aplicación consume POST y GET reales de `/api/v1/host/properties`. Fotos, listado de propiedades, edición y envío a validación corresponden a flujos posteriores. El catálogo de huéspedes conserva sus ejemplos hasta integrar propiedades publicadas.
+La aplicación consume POST y GET reales de `/api/v1/host/properties`. El listado, la edición y el envío a validación se integran en HU-08 a HU-10; las fotos y la publicación administrativa corresponden a flujos posteriores. El catálogo de huéspedes conserva sus ejemplos hasta integrar propiedades publicadas.
 
 Verificación: lint, build y 55 pruebas frontend aprobadas; pruebas de permisos, validación, errores, reintento idempotente y confirmación. Las respuestas HTTP del frontend se simulan; las pruebas del backend verifican persistencia y seguridad con H2.
 
@@ -135,6 +135,15 @@ Incluye carga, lista vacía, recuperación de errores y retorno a la primera pá
 
 Desde las tarjetas o el detalle se abre `/host/properties/:id/edit`. El formulario reutiliza los campos y el diseño de HU-07, carga los datos actuales por GET y guarda por PUT con su versión. Solo confirma el guardado tras validar la respuesta. Conserva entradas ante fallos, bloquea envíos repetidos y permite cancelar sin escribir. Las consultas de lista se invalidan tras guardar.
 
-Un conflicto 409 mantiene los cambios locales y bloquea otro guardado hasta que el anfitrión elija “Descartar cambios y recargar”. Se informa que esa acción descartará sus cambios. El formulario no recarga automáticamente al recuperar foco o conexión para evitar perder entradas. Un 401 cierra la sesión; una propiedad ajena o inexistente muestra no encontrada. La edición conserva el estado de la propiedad, sin transiciones adicionales.
+Un conflicto 409 mantiene los cambios locales y bloquea otro guardado hasta que el anfitrión elija “Descartar cambios y recargar”. Se informa que esa acción descartará sus cambios. El formulario no recarga automáticamente al recuperar foco o conexión para evitar perder entradas. Un 401 cierra la sesión; una propiedad ajena o inexistente muestra no encontrada. La edición conserva el estado de la propiedad. Desde HU-10 queda bloqueada mientras está pendiente de revisión.
 
 La revisión de navegador, con respuestas HTTP simuladas, verificó edición, guardado, recarga y cancelación en seis anchos de 375 a 1440 px sin desbordamientos ni errores JavaScript. No se proporcionó un frame específico de HU-09; se mantiene la estética existente.
+
+
+## HU-10: envío a validación
+
+Las propiedades Borrador y Rechazada ofrecen “Enviar a validación” en el listado y el detalle. Una confirmación identifica el alojamiento, explica que el envío no lo publica y advierte que no podrá editarse durante la revisión. Recibe foco de teclado; Cancelar y Escape cierran la confirmación y devuelven foco al control de origen. El envío bloquea controles duplicados, guarda por POST con la versión consultada y confirma únicamente una respuesta válida PENDING_REVIEW con fecha de envío.
+
+Tras enviar se actualizan el detalle y el listado. Pendiente de revisión y Publicada no ofrecen envío; la ruta de edición también bloquea propiedades en revisión. Los errores permiten reintentar; un conflicto ofrece actualizar el estado, y un 401 termina la sesión. La fecha de envío aparece en el detalle. No se requieren fotos ni documentos para esta operación: la HU y el SRS no definen esos requisitos; se comprueba la información principal de HU-07.
+
+Verificación: 83 pruebas frontend, lint y build; navegador con respuestas HTTP simuladas en seis anchos de 375 a 1440 px, confirmación, cancelación, envío, recarga y bloqueo de edición, sin desbordamientos ni errores JavaScript. Se reutiliza el diseño existente, sin un frame específico aportado para HU-10.

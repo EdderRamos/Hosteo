@@ -19,6 +19,7 @@ import org.springframework.data.domain.Sort;
 public class HostPropertyService {
     private final UserRepository users;
     private final PropertyRepository properties;
+    private final jakarta.validation.Validator validator;
     public record Registration(PropertyResponse property, boolean created) {}
 
     @Transactional
@@ -61,12 +62,43 @@ public class HostPropertyService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
         if (property.getVersion() != input.version())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Property changed. Reload before saving again");
+        if (property.getStatus() == PropertyStatus.PENDING_REVIEW)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Property is under review and cannot be edited");
         var request = input.information();
         if (PropertyResponse.from(property).registration().equals(request)) return PropertyResponse.from(property);
         property.setTitle(request.title()); property.setDescription(request.description()); property.setType(request.type());
         property.setAddress(request.address()); property.setCity(request.city()); property.setDistrict(request.district());
         property.setCapacity(request.capacity()); property.setBedrooms(request.bedrooms()); property.setBeds(request.beds());
         property.setBathrooms(request.bathrooms()); property.setNightlyRate(request.nightlyRate()); property.setCurrency(request.currency());
+        return PropertyResponse.from(properties.saveAndFlush(property));
+    }
+
+    @Transactional
+    public PropertyResponse submit(String subject, long revision, Long id, SubmitPropertyRequest input) {
+        var host = users.findLockedById(Long.valueOf(subject))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication"));
+        if (!host.isActive() || host.getRoleRevision() != revision)
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication");
+        if (host.getRole().getCode() != RoleCode.HOST)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Host access required");
+        var property = properties.findLockedOwned(id, host.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
+        // A lost-response retry may carry the version immediately before submission.
+        if (property.getStatus() == PropertyStatus.PENDING_REVIEW && property.getSubmittedAt() != null
+                && (input.version() == property.getVersion() || input.version() == property.getVersion() - 1))
+            return PropertyResponse.from(property);
+        if (property.getVersion() != input.version())
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Property changed. Reload before submitting");
+        if (property.getStatus() != PropertyStatus.DRAFT && property.getStatus() != PropertyStatus.REJECTED)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only draft or rejected properties can be submitted");
+        var response = PropertyResponse.from(property);
+        var information = new CreatePropertyRequest(response.title(), response.description(), response.type(), response.address(),
+                response.city(), response.district(), response.capacity(), response.bedrooms(), response.beds(),
+                response.bathrooms(), response.nightlyRate(), response.currency());
+        if (!validator.validate(information).isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Complete the property's principal information before submitting");
+        property.setStatus(PropertyStatus.PENDING_REVIEW);
+        property.setSubmittedAt(java.time.Instant.now());
         return PropertyResponse.from(properties.saveAndFlush(property));
     }
 

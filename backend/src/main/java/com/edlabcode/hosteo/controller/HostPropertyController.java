@@ -38,6 +38,13 @@ public class HostPropertyController {
             @RequestParam(defaultValue = "0") @Min(0) int page) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(properties.list(jwt.getSubject(), page));
     }
+    @PostMapping("/{id}/submit")
+    @Operation(summary = "Submit your draft or rejected property for administrative review")
+    public ResponseEntity<PropertyResponse> submit(@AuthenticationPrincipal Jwt jwt, @PathVariable @Positive Long id,
+            @Valid @RequestBody SubmitPropertyRequest request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(properties.submit(
+                jwt.getSubject(), jwt.<Number>getClaim("roleRevision").longValue(), id, request));
+    }
     @PutMapping("/{id}")
     @Operation(summary = "Update the principal information of your property")
     public ResponseEntity<PropertyResponse> update(@AuthenticationPrincipal Jwt jwt, @PathVariable @Positive Long id,
