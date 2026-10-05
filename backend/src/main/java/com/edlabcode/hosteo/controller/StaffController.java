@@ -27,5 +27,12 @@ public class StaffController {
     @PatchMapping("/users/{id}/role")
     @PreAuthorize("hasRole('ADMINISTRATOR')")
     public ResponseEntity<StaffUserResponse> assign(@PathVariable @Positive Long id, @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody AssignRoleRequest request) { return response(staff.assign(id, jwt.getSubject(), request)); }
+            @Valid @RequestBody AssignRoleRequest request) { return response(staff.assign(id, jwt.getSubject(), jwt.<Number>getClaim("roleRevision").longValue(), request)); }
+    @PatchMapping("/users/{id}/status")
+    @PreAuthorize("hasRole('ADMINISTRATOR')")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Activate or deactivate another user account")
+    public ResponseEntity<StaffUserResponse> updateStatus(@PathVariable @Positive Long id,
+            @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UpdateUserStatusRequest request) {
+        return response(staff.updateStatus(id, jwt.getSubject(), jwt.<Number>getClaim("roleRevision").longValue(), request));
+    }
 }

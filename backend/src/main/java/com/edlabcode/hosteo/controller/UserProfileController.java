@@ -2,7 +2,7 @@ package com.edlabcode.hosteo.controller;
 
 import com.edlabcode.hosteo.dto.ProfileResponse;
 import com.edlabcode.hosteo.dto.UpdateProfileRequest;
-import com.edlabcode.hosteo.service.CustomerProfileService;
+import com.edlabcode.hosteo.service.UserProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -14,20 +14,20 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/customer/profile")
+@RequestMapping("/api/v1/profile")
 @SecurityRequirement(name = "bearerAuth")
 @RequiredArgsConstructor
-public class CustomerProfileController {
-    private final CustomerProfileService profiles;
+public class UserProfileController {
+    private final UserProfileService profiles;
 
     @GetMapping
-    @Operation(summary = "Get your customer profile")
+    @Operation(summary = "Get your personal profile")
     public ResponseEntity<ProfileResponse> getProfile(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(profiles.getProfile(jwt.getSubject()));
     }
 
     @PutMapping
-    @Operation(summary = "Replace your customer profile")
+    @Operation(summary = "Replace your personal profile")
     public ResponseEntity<ProfileResponse> updateProfile(@AuthenticationPrincipal Jwt jwt,
                                                         @Valid @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())

@@ -16,7 +16,7 @@ import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
-public class CustomerProfileService {
+public class UserProfileService {
     private final UserRepository users;
 
     @Transactional(readOnly = true)

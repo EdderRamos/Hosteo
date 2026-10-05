@@ -68,25 +68,25 @@ Success returns 201 with the user identity and numeric `roleId`. Invalid input r
 
 Local development uses `DB_DDL_AUTO=update` to create missing columns and preserve accounts. The fallback remains `validate`. The existing four roles must be present in the database.
 
-## HU-03 customer profile
+## HU-03 personal profile
 
-`GET /api/v1/customer/profile` reads the authenticated profile. `PUT /api/v1/customer/profile` replaces editable fields and returns the saved profile. Both require a bearer token and the GUEST or HOST role. Identity is taken from the token; no user ID is accepted in the path or payload.
+`GET /api/v1/profile` reads the authenticated profile. `PUT /api/v1/profile` replaces editable fields and returns the saved profile. Both require a bearer token and accept all four roles: GUEST, HOST, ADMINISTRATOR and SUPPORT. Identity is taken from the token; no user ID is accepted in the path or payload.
 
-Fields: `firstName`, `lastName`, `email`, `phone`, `gender`, `dateOfBirth`, `biography`, `occupation`, `location`, `avatarUrl`, `languages`, `interests`, `version`. Names and email are required. Optional scalar fields may be null to clear them. Lists are required and may be empty. Each language has `code` such as `es` or `en` and `proficiency`: BASIC, INTERMEDIATE, ADVANCED or NATIVE. Gender values are FEMALE, MALE, NON_BINARY, OTHER and PREFER_NOT_TO_SAY.
+Fields: `firstName`, `lastName`, `email`, `phone`, `gender`, `dateOfBirth`, `biography`, `occupation`, `location`, `languages`, `interests`, `version`. Names and email are required. Optional scalar fields may be null to clear them. Lists are required and may be empty. Each language has `code` such as `es` or `en` and `proficiency`: BASIC, INTERMEDIATE, ADVANCED or NATIVE. Gender values are FEMALE, MALE, NON_BINARY, OTHER and PREFER_NOT_TO_SAY.
 
-Biography is limited to 500 characters, dates of birth must be in the past, avatar URLs must use HTTPS, and duplicate languages/interests are rejected. Avatar files must already be uploaded; this endpoint stores a URL only. Email remains unique and normalized. Verification of contact details is not implemented by this endpoint.
+Biography is limited to 500 characters, dates of birth must be in the past, and duplicate languages/interests are rejected. Avatar URLs are returned for display and preserved on update; photo editing is disabled. Email remains unique and normalized. Verification of contact details is not implemented by this endpoint.
 
 Use the `version` returned by GET to save changes. Stale versions return 409 PROFILE_CONFLICT. Role, activation state, password, membership date and user ID are not editable. Profile updates and collections are saved transactionally. Hibernate update adds the profile columns and `user_languages`/`user_interests` tables in local development.
 
-El perfil usa `GET` y `PUT /api/v1/customer/profile`. La edición de foto está temporalmente deshabilitada: `avatarUrl` sigue disponible en la respuesta para mostrar una foto existente, pero no forma parte de `UpdateProfileRequest` y el servicio conserva su valor al actualizar los demás datos.
+El perfil usa `GET` y `PUT /api/v1/profile`. La edición de foto está temporalmente deshabilitada: `avatarUrl` sigue disponible en la respuesta para mostrar una foto existente, pero no forma parte de `UpdateProfileRequest` y el servicio conserva su valor al actualizar los demás datos.
 
 ## HU-05: portal de personal y asignación de roles
 
-El prefijo `/api/v1/hosteo` comparte el portal entre `ADMINISTRATOR` y `SUPPORT`. Customer agrupa `GUEST` y `HOST` en la interfaz, pero conserva ambos códigos y permisos. No existe un quinto rol Customer ni Superadmin.
+El prefijo `/api/v1/hosteo` comparte el portal entre `ADMINISTRATOR` y `SUPPORT`. Los cuatro roles son independientes: `GUEST`, `HOST`, `ADMINISTRATOR` y `SUPPORT`. No existe un quinto rol ni una agrupación de huéspedes y anfitriones.
 
 | Método y ruta | Permiso | Contrato |
 | --- | --- | --- |
-| GET `/api/v1/hosteo/summary` | Administrador/Soporte | Totales de cuentas customer, administradores y soporte, incluyendo inactivas |
+| GET `/api/v1/hosteo/summary` | Administrador/Soporte | Totales separados de huéspedes, anfitriones, administradores y soporte, incluyendo inactivas |
 | GET `/api/v1/hosteo/roles` | Administrador/Soporte | Códigos de los cuatro roles |
 | GET `/api/v1/hosteo/users?query=&page=0` | Administrador/Soporte | `items`, `total`, `page`, `pages`; 10 cuentas por página, búsqueda por email/nombres/apellidos |
 | PATCH `/api/v1/hosteo/users/{id}/role` | Solo Administrador | `{ "roleCode": "SUPPORT", "version": 3 }`; devuelve la cuenta actualizada |
@@ -96,3 +96,21 @@ Las respuestas de usuarios incluyen ID, nombres, email, código de rol, estado a
 Aplicar `backend/database/migrations/001_user_role_revision.sql` antes de arrancar contra un esquema PostgreSQL existente. La migración añade `users.role_revision` sin cambiar roles ni cuentas; ya se aplicó a la base configurada durante esta implementación. No se configura ejecución automática de migraciones en este cambio. H2 crea el campo mediante JPA en las pruebas.
 
 El JWT y las respuestas de login/me ahora incluyen, respectivamente, `roleRevision` y `roleCode`. Cada reasignación efectiva incrementa la revisión e invalida tokens anteriores, incluso si después se restaura el rol inicial. Los JWT emitidos antes de este cambio requieren iniciar sesión nuevamente. La invalidación se aplica en la siguiente solicitud autenticada; no existe notificación push ni un nuevo token enviado a la cuenta afectada. Se necesita una cuenta administrativa provisionada previamente; el registro público continúa creando únicamente huéspedes.
+
+## HU-06: activación y desactivación de usuarios
+
+`PATCH /api/v1/hosteo/users/{id}/status` recibe `{ "active": false, "version": 3 }` y devuelve `StaffUserResponse` actualizado, con `Cache-Control: no-store`. `active` y `version` son obligatorios; `active: true` reactiva la cuenta. Solo `ADMINISTRATOR` puede escribir; soporte conserva consulta. No se permite modificar el acceso de la cuenta propia, para evitar que el administrador se desactive.
+
+El servicio bloquea actor y destino en orden de ID, comprueba que el actor siga activo, con rol administrativo y con la revisión del JWT vigente, y valida la versión del destino. Un cambio concurrente de rol o estado devuelve 409; una cuenta inexistente, 404; datos inválidos o cambio propio, 400. Una solicitud con el estado actual y la versión vigente no incrementa revisión ni versión.
+
+La desactivación conserva datos y relaciones históricas. Login y cada petición autenticada rechazan cuentas inactivas. Cada cambio efectivo de `active` incrementa la revisión de sesión existente (`role_revision` / claim `roleRevision`); su nombre procede de HU-05 y ahora también cubre cambios de acceso. Así, reactivar la cuenta no revive tokens anteriores: se requiere iniciar sesión de nuevo. La invalidación se verifica en la siguiente petición autenticada, sin notificación push.
+
+No requiere una nueva migración: reutiliza `users.active` y la columna de HU-05. No se modificaron estados de cuentas reales durante esta implementación. Las pruebas cubren los cuatro roles, reactivación, JWT antiguos, datos preservados, estado sin cambios, permisos, cuenta propia, validación y conflicto concurrente entre cambio de rol y estado.
+
+## Alineación con los cuatro roles
+
+`UserProfileController` y `UserProfileService` reemplazan los nombres anteriores del perfil. `GET/PUT /api/v1/profile` atiende únicamente al usuario del JWT y permite gestionar el perfil personal a los cuatro roles (HU-03). La respuesta incluye `roleCode`; el PUT no puede asignar roles ni modificar el estado activo. El endpoint anterior se retiró y no se mantiene como alias.
+
+El resumen de personal devuelve `{ "guests": 0, "hosts": 0, "administrators": 0, "support": 0 }`, sin agregar huésped y anfitrión en un solo grupo. `/api/v1/guest/**`, `/api/v1/host/**`, `/api/v1/admin/**` y `/api/v1/support/**` conservan permisos independientes. `/api/v1/hosteo/**` continúa compartido exclusivamente por administrador y soporte, con escrituras limitadas al administrador.
+
+No se cambia ningún rol existente ni el esquema de datos: el modelo ya usa los cuatro códigos. Tras renombrar clases, ejecutar una compilación limpia para eliminar clases antiguas del directorio generado `target`. Esto alinea las funcionalidades existentes; propiedades, calendario, reservas y pagos siguen pendientes según las HUs documentadas.

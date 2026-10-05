@@ -155,7 +155,7 @@ class AuthIntegrationTests {
         user.setAvatarUrl("https://example.com/original.jpg");
         users.saveAndFlush(user);
         String token = json(login(user.getEmail(), "ValidPassword123!")).get("accessToken").asText();
-        var profile = json(request("GET", "/api/v1/customer/profile", null, token));
+        var profile = json(request("GET", "/api/v1/profile", null, token));
         var payload = new java.util.HashMap<String, Object>();
         payload.put("firstName", "Updated");
         payload.put("lastName", "User");
@@ -163,12 +163,12 @@ class AuthIntegrationTests {
         payload.put("languages", java.util.List.of());
         payload.put("interests", java.util.List.of());
         payload.put("version", profile.get("version").asLong());
-        var updated = request("PUT", "/api/v1/customer/profile", mapper.writeValueAsString(payload), token);
+        var updated = request("PUT", "/api/v1/profile", mapper.writeValueAsString(payload), token);
         assertEquals(200, updated.statusCode());
         assertEquals("https://example.com/original.jpg", json(updated).get("avatarUrl").asText());
         payload.put("version", json(updated).get("version").asLong());
         payload.put("avatarUrl", "https://example.com/replacement.jpg");
-        var attemptedPhoto = request("PUT", "/api/v1/customer/profile", mapper.writeValueAsString(payload), token);
+        var attemptedPhoto = request("PUT", "/api/v1/profile", mapper.writeValueAsString(payload), token);
         assertTrue(attemptedPhoto.statusCode() == 200 || attemptedPhoto.statusCode() == 400);
         assertEquals("https://example.com/original.jpg", users.findById(user.getId()).orElseThrow().getAvatarUrl());
     }
@@ -220,6 +220,125 @@ class AuthIntegrationTests {
         assertEquals(400, request("PATCH", path, "{\"roleCode\":\"SUPERADMIN\",\"version\":0}", adminToken).statusCode());
         assertEquals(400, request("PATCH", path, "{}", adminToken).statusCode());
         assertEquals(404, request("PATCH", "/api/v1/hosteo/users/999999/role", "{\"roleCode\":\"GUEST\",\"version\":0}", adminToken).statusCode());
+    }
+
+    @Test
+    void administratorCanDisableAndEnableEveryRoleWithoutRevivingOldSessions() throws Exception {
+        var admin = createUser("admin@hosteo.test", RoleCode.ADMINISTRATOR, true);
+        String adminToken = json(login(admin.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        for (RoleCode role : RoleCode.values()) {
+            var target = createUser(role.name().toLowerCase() + "@hosteo.test", role, true);
+            String oldToken = json(login(target.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+            target = users.findById(target.getId()).orElseThrow();
+            String hash = target.getPasswordHash();
+            String path = "/api/v1/hosteo/users/" + target.getId() + "/status";
+            String disable = mapper.writeValueAsString(Map.of("active", false, "version", target.getVersion()));
+            var disabled = request("PATCH", path, disable, adminToken);
+            assertEquals(200, disabled.statusCode());
+            assertFalse(json(disabled).get("active").asBoolean());
+            assertEquals("no-store", disabled.headers().firstValue("cache-control").orElseThrow());
+            assertEquals(401, login(target.getEmail(), "ValidPassword123!").statusCode());
+            assertEquals(401, request("GET", "/api/v1/auth/me", null, oldToken).statusCode());
+            assertEquals(409, request("PATCH", path, disable, adminToken).statusCode());
+            var preserved = users.findById(target.getId()).orElseThrow();
+            assertEquals(hash, preserved.getPasswordHash());
+            assertEquals(role, preserved.getRole().getCode());
+            long version = preserved.getVersion();
+            long revision = preserved.getRoleRevision();
+            var noop = request("PATCH", path, mapper.writeValueAsString(Map.of("active", false, "version", version)), adminToken);
+            assertEquals(200, noop.statusCode());
+            assertEquals(version, json(noop).get("version").asLong());
+            assertEquals(revision, users.findById(target.getId()).orElseThrow().getRoleRevision());
+            var enabled = request("PATCH", path, mapper.writeValueAsString(Map.of("active", true, "version", version)), adminToken);
+            assertEquals(200, enabled.statusCode());
+            assertTrue(json(enabled).get("active").asBoolean());
+            assertEquals(401, request("GET", "/api/v1/auth/me", null, oldToken).statusCode());
+            var freshLogin = login(target.getEmail(), "ValidPassword123!");
+            assertEquals(200, freshLogin.statusCode());
+            assertEquals(200, request("GET", "/api/v1/auth/me", null, json(freshLogin).get("accessToken").asText()).statusCode());
+        }
+    }
+
+    @Test
+    void accountStatusRequiresAdministratorAndRejectsSelfAndInvalidRequests() throws Exception {
+        var admin = createUser("admin@hosteo.test", RoleCode.ADMINISTRATOR, true);
+        var target = createUser("target@hosteo.test", RoleCode.GUEST, true);
+        String path = "/api/v1/hosteo/users/" + target.getId() + "/status";
+        String payload = mapper.writeValueAsString(Map.of("active", false, "version", target.getVersion()));
+        assertEquals(401, request("PATCH", path, payload, null).statusCode());
+        for (RoleCode role : new RoleCode[] {RoleCode.GUEST, RoleCode.HOST, RoleCode.SUPPORT}) {
+            var actor = createUser(role.name().toLowerCase() + "@hosteo.test", role, true);
+            String token = json(login(actor.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+            assertEquals(403, request("PATCH", path, payload, token).statusCode());
+        }
+        String token = json(login(admin.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        long version = users.findById(admin.getId()).orElseThrow().getVersion();
+        assertEquals(400, request("PATCH", "/api/v1/hosteo/users/" + admin.getId() + "/status", mapper.writeValueAsString(Map.of("active", false, "version", version)), token).statusCode());
+        for (String invalid : new String[] {"{}", "{\"active\":null,\"version\":0}", "{\"active\":false}", "{\"active\":false,\"version\":-1}", "{\"active\":\"invalid\",\"version\":0}"})
+            assertEquals(400, request("PATCH", path, invalid, token).statusCode());
+        assertEquals(404, request("PATCH", "/api/v1/hosteo/users/999999/status", payload, token).statusCode());
+        assertTrue(users.findById(target.getId()).orElseThrow().isActive());
+        assertTrue(users.findById(admin.getId()).orElseThrow().isActive());
+    }
+
+    @Test
+    void concurrentRoleAndStatusChangesCannotOverwriteEachOther() throws Exception {
+        var admin = createUser("admin@hosteo.test", RoleCode.ADMINISTRATOR, true);
+        var target = createUser("target@hosteo.test", RoleCode.GUEST, true);
+        String token = json(login(admin.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String statusBody = mapper.writeValueAsString(Map.of("active", false, "version", target.getVersion()));
+        String roleBody = mapper.writeValueAsString(Map.of("roleCode", "HOST", "version", target.getVersion()));
+        String path = "/api/v1/hosteo/users/" + target.getId();
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            var start = new java.util.concurrent.CountDownLatch(1);
+            var status = executor.submit(() -> { start.await(); return request("PATCH", path + "/status", statusBody, token).statusCode(); });
+            var role = executor.submit(() -> { start.await(); return request("PATCH", path + "/role", roleBody, token).statusCode(); });
+            start.countDown();
+            var responses = java.util.stream.Stream.of(status.get(), role.get()).sorted().toList();
+            assertEquals(java.util.List.of(200, 409), responses);
+            var account = users.findById(target.getId()).orElseThrow();
+            assertTrue((!account.isActive() && account.getRole().getCode() == RoleCode.GUEST)
+                    || (account.isActive() && account.getRole().getCode() == RoleCode.HOST));
+        }
+    }
+
+    @Test
+    void allFourRolesManageOnlyTheirOwnPersonalProfile() throws Exception {
+        assertEquals(401, request("GET", "/api/v1/profile", null, null).statusCode());
+        for (RoleCode role : RoleCode.values()) {
+            var account = createUser(role.name().toLowerCase() + "@hosteo.test", role, true);
+            String token = json(login(account.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+            var loaded = request("GET", "/api/v1/profile", null, token);
+            assertEquals(200, loaded.statusCode());
+            assertEquals(account.getId().longValue(), json(loaded).get("id").asLong());
+            assertEquals(role.name(), json(loaded).get("roleCode").asText());
+            var payload = new java.util.HashMap<String, Object>();
+            payload.put("firstName", "Updated");
+            payload.put("lastName", "Profile");
+            payload.put("email", account.getEmail());
+            payload.put("languages", java.util.List.of());
+            payload.put("interests", java.util.List.of());
+            payload.put("version", json(loaded).get("version").asLong());
+            var saved = request("PUT", "/api/v1/profile", mapper.writeValueAsString(payload), token);
+            assertEquals(200, saved.statusCode());
+            assertEquals("Updated", json(saved).get("firstName").asText());
+            assertEquals(role.name(), json(saved).get("roleCode").asText());
+            assertEquals(account.getId().longValue(), json(saved).get("id").asLong());
+        }
+    }
+
+    @Test
+    void staffSummaryReportsFourRolesSeparately() throws Exception {
+        var admin = createUser("admin@hosteo.test", RoleCode.ADMINISTRATOR, true);
+        createUser("guest@hosteo.test", RoleCode.GUEST, true);
+        createUser("host@hosteo.test", RoleCode.HOST, true);
+        createUser("support@hosteo.test", RoleCode.SUPPORT, false);
+        String token = json(login(admin.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        var response = request("GET", "/api/v1/hosteo/summary", null, token);
+        assertEquals(200, response.statusCode());
+        assertEquals(4, json(response).size());
+        for (String field : new String[] {"guests", "hosts", "support", "administrators"})
+            assertEquals(1, json(response).get(field).asInt());
     }
 
     private User createUser(String email, RoleCode code, boolean active) {

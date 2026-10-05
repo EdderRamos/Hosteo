@@ -4,15 +4,18 @@ Landing y flujo de autenticación de Hosteo, construidos con React 19, TypeScrip
 
 ## Pantallas
 
-- `/`: redirige al inicio predeterminado `/home`.
-- `/home`: catálogo “Home: Customer” con buscador y filtros locales.
+- `/` y `/home`: redirigen al portal correspondiente al rol.
+- `/guest`: catálogo del huésped con buscador y filtros locales.
+- `/host`: home del anfitrión, con módulos de negocio pendientes.
+- `/hosteo`: portal de administrador y soporte, con permisos distintos.
+- `/profile`: perfil personal para los cuatro roles.
 - `/login`: inicio de sesión.
 - `/register`: registro de cuenta conectado a la API.
 - `/forgot-password`: recuperación de acceso.
 
 ## Desarrollo local
 
-El inicio reproduce el frame de catálogo proporcionado por el usuario. Usa seis alojamientos de ejemplo y permite combinar filtros por distrito, precio y capacidad. Las fechas se validan localmente; no se consulta disponibilidad ni se crean reservas. Los botones de disponibilidad abren una vista previa y las funciones pendientes muestran un aviso. El encabezado muestra la sesión real cuando el usuario inicia sesión. No se agregaron servicios ni cambios al backend.
+El inicio reproduce el frame de catálogo proporcionado por el usuario. Usa seis alojamientos de ejemplo y permite combinar filtros por distrito, precio y capacidad. Las fechas se validan localmente; no se consulta disponibilidad ni se crean reservas. Los botones de disponibilidad abren una vista previa y las funciones pendientes muestran un aviso. El encabezado muestra la sesión real cuando el usuario inicia sesión. El catálogo aún no dispone de una API de propiedades; autenticación, perfil y gestión de usuarios sí están integrados con el backend.
 
 Las fotografías reutilizan assets existentes: son aproximaciones porque el MCP de Figma alcanzó su cuota y la referencia disponible fue la captura. El logo usa el asset único de Hosteo aportado por el usuario.
 
@@ -71,13 +74,13 @@ La implementación inicial fue validada con 22 pruebas de frontend, lint y build
 
 `/home` muestra el usuario autenticado y permite abrir `/profile` o cerrar sesión. Un login exitoso navega al home. El token conserva el mecanismo de sesión existente: `sessionStorage` por defecto, `localStorage` al marcar mantener sesión, restauración por `/auth/me` y expiración del JWT. No se guardan contraseñas ni datos del perfil en esos almacenes.
 
-`/profile` reproduce la estructura de la captura aportada: identidad, datos básicos, biografía, ocupación, ubicación, idiomas, intereses y contacto. Consulta `GET /api/v1/customer/profile` y guarda con `PUT` al mismo endpoint, con bearer token y la versión recibida. Solo actualiza el nombre en el encabezado tras confirmar el guardado. Permite descartar cambios, reintentar carga y conserva el formulario ante errores o conflictos de versión. Un 401 limpia la sesión. El backend autoriza huéspedes y anfitriones.
+`/profile` reproduce la estructura de la captura aportada: identidad, datos básicos, biografía, ocupación, ubicación, idiomas, intereses y contacto. Consulta `GET /api/v1/profile` y guarda con `PUT` al mismo endpoint, con bearer token y la versión recibida. Solo actualiza el nombre en el encabezado tras confirmar el guardado. Permite descartar cambios, reintentar carga y conserva el formulario ante errores o conflictos de versión. Un 401 limpia la sesión. El perfil personal está autorizado para los cuatro roles.
 
 La edición de foto está temporalmente deshabilitada. El formulario y el PUT no incluyen `avatarUrl`; el servicio conserva la foto existente. Los controles para añadir idiomas e intereses se despliegan desde las opciones del diseño. Los datos vacíos permanecen vacíos, sin inventar la identidad de la captura. El diseño móvil se infiere del desktop. La revisión del flujo usa respuestas HTTP simuladas; validar persistencia en la base real requiere iniciar sesión con una cuenta existente y guardar desde la interfaz.
 
 ## HU-05: portal Hosteo
 
-`/hosteo` es el home compartido del personal `ADMINISTRATOR` y `SUPPORT`. Login y la ruta raíz usan `roleCode` recibido del backend para decidir el portal, sin asumir IDs fijos. `/home` conserva el catálogo Customer. Al restaurar una sesión se espera la respuesta de `/auth/me` antes de resolver navegación.
+`/hosteo` es el home compartido del personal `ADMINISTRATOR` y `SUPPORT`. Login y la ruta raíz usan `roleCode` recibido del backend para decidir el portal, sin asumir IDs fijos. `/guest` contiene el catálogo del huésped; `/home` redirige según el rol. Al restaurar una sesión se espera la respuesta de `/auth/me` antes de resolver navegación.
 
 El portal adapta la referencia visual aportada: cabecera con cuenta, navegación lateral, tarjetas de cuentas y tabla de asignación. En móvil las filas se convierten en tarjetas con todos sus controles visibles. La información de usuarios y totales proviene de `/api/v1/hosteo`; no hay mocks activos en la aplicación. La búsqueda se envía al confirmar el formulario y la lista usa paginación de servidor.
 
@@ -86,3 +89,28 @@ Administrador puede seleccionar GUEST, HOST, SUPPORT o ADMINISTRATOR para otra c
 Los módulos de propiedades, calendario, recepción y liquidaciones se indican como pendientes. No se reproducen cifras operativas, alertas ni aprobaciones ficticias de la referencia fuera de HU-05. Se conserva el logo existente y se usan iniciales para la cuenta sin inventar una foto personal.
 
 Verificación de HU-05: lint y build aprobados; 31 pruebas frontend y 11 backend. Revisión de navegador con respuestas simuladas en 375, 430, 768, 1024, 1280 y 1440 px, asignación confirmada y soporte sin controles de edición. Las pruebas reales de permisos del backend usan H2. La migración PostgreSQL se aplicó y el backend local publica los cuatro endpoints en OpenAPI; no se reasignaron cuentas reales para probar la interfaz.
+
+## HU-06: control de acceso de cuentas
+
+La tabla de `/hosteo` incorpora **Gestionar acceso**: “Desactivar” para cuentas activas y “Activar” para inactivas. Solo aparece para el administrador; la cuenta propia está protegida. Se conservan los colores, tipografía, espaciados, tarjetas móviles y estados del portal existente, siguiendo `development/docs/contexto/frontend.md` y la referencia visual aportada para el home del personal.
+
+Antes de enviar se confirma el usuario y la consecuencia: bloquear acceso conservando datos, o permitir un nuevo login. La confirmación recibe foco y Cancelar lo devuelve al control que la abrió. Durante el envío se deshabilitan acciones para evitar duplicados. El estado se recarga desde la API tras confirmar el guardado; los errores y conflictos no muestran un éxito ficticio. Un 401 elimina la sesión y lleva a login; 403 muestra el rechazo del servidor.
+
+Integración real con `PATCH /api/v1/hosteo/users/{id}/status`, enviando bearer token, estado deseado y versión recibida. No hay simulación de esta operación en la aplicación. Soporte puede ver los estados y no dispone de controles de rol ni de activación.
+
+Verificación: lint, 36 pruebas frontend y build; 14 pruebas backend con H2. Revisión del portal en navegador con respuestas HTTP simuladas a 375, 430, 768, 1024, 1280 y 1440 px: sin desbordamiento de página ni errores JavaScript; activación, desactivación, cancelación con retorno de foco y consulta de soporte verificadas. No se activaron ni desactivaron cuentas reales para esta revisión.
+
+## Navegación y permisos por los cuatro roles
+
+- `GUEST`: `/guest`, con catálogo de ejemplo y navegación del huésped. El catálogo también es visible sin sesión, como en la vista pública existente.
+- `HOST`: `/host`, con identidad y acceso a su perfil; propiedades, calendario y reservas del anfitrión se indican expresamente como pendientes.
+- `ADMINISTRATOR`: `/hosteo`, con gestión de roles y estado de cuentas.
+- `SUPPORT`: `/hosteo`, con consulta de cuentas y sin controles administrativos.
+
+Login, `/` y la ruta anterior `/home` usan una única función `homePath` basada en `roleCode`. Un usuario autenticado que intenta entrar al portal de otro rol vuelve al suyo. Administrador y soporte comparten el diseño de personal, conservando permisos distintos; huésped y anfitrión ya no se agrupan.
+
+Se renombraron `GuestHomePage`, `GuestHeader`, `GuestCatalog`, estilos, selectores y pruebas del catálogo. Los códigos, labels y destinos de los cuatro roles se centralizan en `src/shared/auth/roles.ts`. El perfil común usa `AccountHeader` y `GET/PUT /api/v1/profile`, sin asumir que todos los usuarios son huéspedes. El portal de personal muestra huéspedes y anfitriones en tarjetas separadas y sus selectores usan los cuatro nombres de rol.
+
+Esta migración no declara terminado todo el MVP: el catálogo sigue siendo una demostración y los módulos del anfitrión no implementan aún sus operaciones de negocio.
+
+Verificación de esta migración: 44 pruebas frontend, lint y build aprobados; 16 pruebas backend aprobadas tras `./mvnw clean test`. Revisión en navegador con respuestas simuladas: navegación y perfil para los cuatro roles; portal de personal y anfitrión en seis tamaños de 375 a 1440 px; catálogo del huésped en móvil. Sin errores JavaScript ni desbordamientos de página. No se modificaron cuentas ni códigos de rol en PostgreSQL.

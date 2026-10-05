@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router'
 import { login } from '../api/auth'
 import { loginSchema, type LoginValues } from '../schemas/login'
+import { homePath } from '../../../shared/auth/roles'
 import { saveSession } from '../session'
 
 export function LoginForm() {
@@ -27,7 +28,7 @@ export function LoginForm() {
     try {
       const response = await login(parsed.data)
       saveSession(response.accessToken, response.user, values.remember)
-      navigate(['ADMINISTRATOR', 'SUPPORT'].includes(response.user.roleCode ?? '') ? '/hosteo' : '/home', { replace: true })
+      navigate(homePath(response.user.roleCode), { replace: true })
     } catch (error) {
       setError('root', { message: error instanceof Error ? error.message : 'No pudimos iniciar sesión. Intenta nuevamente.' })
     }
