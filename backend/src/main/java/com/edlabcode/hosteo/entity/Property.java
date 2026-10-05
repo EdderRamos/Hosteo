@@ -36,6 +36,9 @@ public class Property {
     @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
     @Column(name = "submitted_at") private Instant submittedAt;
+    @Column(name = "published_at") private Instant publishedAt;
+    @Column(name = "reviewed_at") private Instant reviewedAt;
+    @Column(name = "review_comment", length = 1000) private String reviewComment;
     @Version private long version;
     @PrePersist void onCreate() { createdAt = Instant.now(); updatedAt = createdAt; }
     @PreUpdate void onUpdate() { updatedAt = Instant.now(); }

@@ -1,6 +1,9 @@
 package com.edlabcode.hosteo.controller;
 
-import com.edlabcode.hosteo.dto.PendingPropertyResponse;
+import com.edlabcode.hosteo.dto.*;
+import jakarta.validation.Valid;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import com.edlabcode.hosteo.service.PropertyReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -26,6 +29,13 @@ public class PropertyReviewController {
     @Operation(summary = "List properties awaiting administrative review, oldest submission first")
     public ResponseEntity<PropertyReviewService.PendingPage> list(@RequestParam(defaultValue = "0") @Min(0) @Max(100000) int page) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(reviews.list(page));
+    }
+    @PostMapping("/{id}/decision")
+    @Operation(summary = "Approve or reject a property awaiting administrative review")
+    public ResponseEntity<PropertyResponse> decide(@AuthenticationPrincipal Jwt jwt, @PathVariable @Positive Long id,
+            @Valid @RequestBody ReviewPropertyRequest request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(reviews.decide(
+                jwt.getSubject(), jwt.<Number>getClaim("roleRevision").longValue(), id, request));
     }
     @GetMapping("/{id}")
     @Operation(summary = "Read the principal information and host of a pending property")

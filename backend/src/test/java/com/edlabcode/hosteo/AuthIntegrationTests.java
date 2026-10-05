@@ -42,6 +42,8 @@ class AuthIntegrationTests {
     @Autowired
     private PropertyRepository registeredProperties;
     @Autowired
+    private com.edlabcode.hosteo.repository.PropertyReviewRepository propertyReviews;
+    @Autowired
     private RoleRepository roles;
     @Autowired
     private PasswordEncoder passwords;
@@ -53,6 +55,7 @@ class AuthIntegrationTests {
 
     @BeforeEach
     void prepareRoles() {
+        propertyReviews.deleteAll();
         registeredProperties.deleteAll();
         users.deleteAll();
         for (RoleCode code : RoleCode.values()) {
@@ -505,7 +508,7 @@ class AuthIntegrationTests {
             payload.put("version", property.getVersion()); payload.put("title", "Title " + status.name());
             var updated = request("PUT", path, mapper.writeValueAsString(payload), token);
             if (status == com.edlabcode.hosteo.entity.PropertyStatus.PENDING_REVIEW) assertEquals(409, updated.statusCode());
-            else { assertEquals(200, updated.statusCode()); assertEquals(status.name(), json(updated).get("status").asText()); }
+            else { assertEquals(200, updated.statusCode()); assertEquals(status == com.edlabcode.hosteo.entity.PropertyStatus.PUBLISHED ? "DRAFT" : status.name(), json(updated).get("status").asText()); }
         }
         assertEquals(404, request("PUT", "/api/v1/host/properties/999999", mapper.writeValueAsString(payload), token).statusCode());
         host = users.findById(host.getId()).orElseThrow(); host.setActive(false); users.saveAndFlush(host);
@@ -660,6 +663,104 @@ class AuthIntegrationTests {
         admin = users.findById(admin.getId()).orElseThrow(); admin.setActive(false); users.saveAndFlush(admin);
         assertEquals(401, request("GET", path, null, token).statusCode());
         assertEquals(401, request("GET", path + "/1", null, token).statusCode());
+    }
+
+    private long createPendingForReview(String token) throws Exception {
+        var created = json(request("POST", "/api/v1/host/properties", mapper.writeValueAsString(propertyPayload()), token, java.util.UUID.randomUUID().toString()));
+        long id = created.get("id").asLong();
+        assertEquals(200, request("POST", "/api/v1/host/properties/" + id + "/submit", "{\"version\":0}", token).statusCode());
+        return id;
+    }
+
+    @Test
+    void decisionsPublishOrRejectWithHistoryAndSafeRetries() throws Exception {
+        var host = createUser("host@hosteo.test", RoleCode.HOST, true);
+        var admin = createUser("admin@hosteo.test", RoleCode.ADMINISTRATOR, true);
+        String hostToken = json(login(host.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String adminToken = json(login(admin.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        long id = createPendingForReview(hostToken);
+        String path = "/api/v1/hosteo/properties/pending/" + id + "/decision";
+        String approve = "{\"version\":1,\"decision\":\"APPROVED\",\"comment\":\" Validated \"}";
+        var response = request("POST", path, approve, adminToken); assertEquals(200, response.statusCode());
+        assertEquals("no-store", response.headers().firstValue("cache-control").orElseThrow());
+        var published = json(response); assertEquals("PUBLISHED", published.get("status").asText());
+        assertFalse(published.get("publishedAt").isNull()); assertEquals(published.get("publishedAt"), published.get("reviewedAt"));
+        assertEquals("Validated", published.get("reviewComment").asText()); assertEquals(2, published.get("version").asLong());
+        assertEquals(published, json(request("GET", "/api/v1/host/properties/" + id, null, hostToken)));
+        assertEquals(0, json(request("GET", "/api/v1/hosteo/properties/pending", null, adminToken)).get("total").asInt());
+        assertEquals(404, request("GET", "/api/v1/hosteo/properties/pending/" + id, null, adminToken).statusCode());
+        assertEquals(published, json(request("POST", path, approve, adminToken))); assertEquals(1, propertyReviews.count());
+        var audit = propertyReviews.findByPropertyIdAndPropertyVersion(id, 1).orElseThrow();
+        assertEquals(admin.getId(), audit.getAdministrator().getId()); assertEquals(com.edlabcode.hosteo.entity.ReviewDecision.APPROVED, audit.getDecision());
+        assertEquals(409, request("POST", path, "{\"version\":1,\"decision\":\"REJECTED\",\"comment\":\"Changed mind\"}", adminToken).statusCode());
+        var edit = propertyPayload(); edit.put("version", 2); edit.put("title", "New content");
+        var draft = json(request("PUT", "/api/v1/host/properties/" + id, mapper.writeValueAsString(edit), hostToken));
+        assertEquals("DRAFT", draft.get("status").asText()); assertTrue(draft.get("publishedAt").isNull());
+        assertEquals(409, request("POST", path, approve, adminToken).statusCode());
+        assertEquals(200, request("POST", "/api/v1/host/properties/" + id + "/submit", mapper.writeValueAsString(Map.of("version", draft.get("version").asLong())), hostToken).statusCode());
+        var pending = json(request("GET", "/api/v1/host/properties/" + id, null, hostToken));
+        String reject = mapper.writeValueAsString(Map.of("version", pending.get("version").asLong(), "decision", "REJECTED", "comment", " Correct the address "));
+        var rejected = json(request("POST", path, reject, adminToken));
+        assertEquals("REJECTED", rejected.get("status").asText()); assertTrue(rejected.get("publishedAt").isNull());
+        assertEquals("Correct the address", rejected.get("reviewComment").asText()); assertFalse(rejected.get("reviewedAt").isNull());
+        assertEquals(rejected, json(request("POST", path, reject, adminToken))); assertEquals(2, propertyReviews.count());
+        assertEquals(200, request("POST", "/api/v1/host/properties/" + id + "/submit", mapper.writeValueAsString(Map.of("version", rejected.get("version").asLong())), hostToken).statusCode());
+        var resubmitted = json(request("GET", "/api/v1/host/properties/" + id, null, hostToken));
+        assertEquals("PENDING_REVIEW", resubmitted.get("status").asText()); assertTrue(resubmitted.get("reviewComment").isNull());
+        assertEquals(2, propertyReviews.count());
+    }
+
+    @Test
+    void decisionsValidatePermissionsStateAndRejectionReason() throws Exception {
+        var host = createUser("host@hosteo.test", RoleCode.HOST, true);
+        var admin = createUser("admin@hosteo.test", RoleCode.ADMINISTRATOR, true);
+        String hostToken = json(login(host.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String adminToken = json(login(admin.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        long id = createPendingForReview(hostToken);
+        String path = "/api/v1/hosteo/properties/pending/" + id + "/decision";
+        String body = "{\"version\":1,\"decision\":\"APPROVED\"}";
+        assertEquals(401, request("POST", path, body, null).statusCode());
+        assertEquals(403, request("POST", path, body, hostToken).statusCode());
+        for (RoleCode role : new RoleCode[] {RoleCode.GUEST, RoleCode.SUPPORT}) {
+            var user = createUser(role.name().toLowerCase() + "@hosteo.test", role, true);
+            String token = json(login(user.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+            assertEquals(403, request("POST", path, body, token).statusCode());
+        }
+        for (String invalid : new String[] {"{}", "{\"version\":-1,\"decision\":\"APPROVED\"}", "{\"version\":1,\"decision\":\"PUBLISHED\"}", "{\"version\":1,\"decision\":\"REJECTED\"}", "{\"version\":1,\"decision\":\"REJECTED\",\"comment\":\" \"}"})
+            assertEquals(400, request("POST", path, invalid, adminToken).statusCode());
+        assertEquals(400, request("POST", path, mapper.writeValueAsString(Map.of("version", 1, "decision", "REJECTED", "comment", "x".repeat(1001))), adminToken).statusCode());
+        assertEquals(409, request("POST", path, "{\"version\":0,\"decision\":\"APPROVED\"}", adminToken).statusCode());
+        assertEquals(404, request("POST", "/api/v1/hosteo/properties/pending/999999/decision", body, adminToken).statusCode());
+        var draft = json(request("POST", "/api/v1/host/properties", mapper.writeValueAsString(propertyPayload()), hostToken, java.util.UUID.randomUUID().toString()));
+        assertEquals(409, request("POST", "/api/v1/hosteo/properties/pending/" + draft.get("id").asLong() + "/decision", "{\"version\":0,\"decision\":\"APPROVED\"}", adminToken).statusCode());
+        assertEquals(0, propertyReviews.count());
+        var incomplete = registeredProperties.findById(id).orElseThrow(); incomplete.setDescription(" "); incomplete = registeredProperties.saveAndFlush(incomplete);
+        assertEquals(400, request("POST", path, mapper.writeValueAsString(Map.of("version", incomplete.getVersion(), "decision", "APPROVED")), adminToken).statusCode());
+        assertEquals(0, propertyReviews.count());
+        assertEquals(com.edlabcode.hosteo.entity.PropertyStatus.PENDING_REVIEW, registeredProperties.findById(id).orElseThrow().getStatus());
+        admin = users.findById(admin.getId()).orElseThrow(); admin.setActive(false); users.saveAndFlush(admin);
+        assertEquals(401, request("POST", path, body, adminToken).statusCode());
+    }
+
+    @Test
+    void conflictingAdministratorDecisionsProduceOnlyOneAuditEntry() throws Exception {
+        var host = createUser("host@hosteo.test", RoleCode.HOST, true);
+        var first = createUser("first@hosteo.test", RoleCode.ADMINISTRATOR, true);
+        var second = createUser("second@hosteo.test", RoleCode.ADMINISTRATOR, true);
+        String hostToken = json(login(host.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String firstToken = json(login(first.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String secondToken = json(login(second.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        long id = createPendingForReview(hostToken); String path = "/api/v1/hosteo/properties/pending/" + id + "/decision";
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(2); var start = new java.util.concurrent.CountDownLatch(1);
+        try {
+            var approve = executor.submit(() -> { start.await(); return request("POST", path, "{\"version\":1,\"decision\":\"APPROVED\"}", firstToken); });
+            var reject = executor.submit(() -> { start.await(); return request("POST", path, "{\"version\":1,\"decision\":\"REJECTED\",\"comment\":\"Incomplete information\"}", secondToken); });
+            start.countDown(); var approval = approve.get(15, java.util.concurrent.TimeUnit.SECONDS); var rejection = reject.get(15, java.util.concurrent.TimeUnit.SECONDS);
+            assertTrue((approval.statusCode() == 200 && rejection.statusCode() == 409) || (approval.statusCode() == 409 && rejection.statusCode() == 200));
+            assertEquals(1, propertyReviews.count());
+            var stored = json(request("GET", "/api/v1/host/properties/" + id, null, hostToken));
+            assertEquals(approval.statusCode() == 200 ? "PUBLISHED" : "REJECTED", stored.get("status").asText());
+        } finally { executor.shutdownNow(); }
     }
 
     private User createUser(String email, RoleCode code, boolean active) {

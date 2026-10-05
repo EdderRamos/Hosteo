@@ -137,9 +137,9 @@ Páginas negativas o inválidas devuelven 400; sin sesión válida, 401; otros r
 
 `PUT /api/v1/host/properties/{id}` requiere HOST activo. Recibe los mismos campos principales y validaciones del registro más `version` obligatoria, entera y no negativa, obtenida del GET. La propiedad se busca por ID y anfitrión autenticado; una propiedad ajena o inexistente devuelve 404. La respuesta 200 incluye los datos persistidos y `Cache-Control: no-store`.
 
-Se bloquean la cuenta del anfitrión y la propiedad en una transacción, se revalidan el acceso y la revisión del JWT y se comprueba la versión. Una versión desactualizada devuelve 409 sin sobrescribir datos. La edición preserva identidad, propietario, fecha de creación, clave de registro y estado; no agrega transiciones de aprobación o publicación que HU-09 no define. Una escritura idéntica con versión vigente no incrementa la versión. No requiere migración adicional.
+Se bloquean la cuenta del anfitrión y la propiedad en una transacción, se revalidan el acceso y la revisión del JWT y se comprueba la versión. Una versión desactualizada devuelve 409 sin sobrescribir datos. La edición preserva identidad, propietario, fecha de creación y clave de registro. Desde HU-12, modificar una propiedad PUBLISHED la devuelve a DRAFT y elimina sus datos de aprobación actuales para exigir nueva validación. Una escritura idéntica con versión vigente no incrementa la versión. No requiere migración adicional.
 
-Las pruebas verifican edición, persistencia, validación, aislamiento, conflictos, permisos y cuentas inactivas. Desde HU-10, PENDING_REVIEW bloquea la edición; los demás estados se conservan al editar. No se editaron propiedades reales para probar el flujo.
+Las pruebas verifican edición, persistencia, validación, aislamiento, conflictos, permisos y cuentas inactivas. Desde HU-10, PENDING_REVIEW bloquea la edición; DRAFT y REJECTED conservan su estado, mientras editar PUBLISHED requiere nueva validación desde HU-12. No se editaron propiedades reales para probar el flujo.
 
 
 ## HU-10: solicitud de validación
@@ -161,3 +161,18 @@ Solo ADMINISTRATOR activo puede consultar `GET /api/v1/hosteo/properties/pending
 Se incluyen únicamente propiedades PENDING_REVIEW de todos los anfitriones. Un expediente inexistente o que ya salió de revisión devuelve 404. Páginas inválidas, negativas o mayores que 100000 e IDs inválidos devuelven 400. Sin sesión válida o con cuenta desactivada devuelve 401; HOST, GUEST y SUPPORT reciben 403. Los endpoints devuelven no-store y no escriben datos ni cambian estados. No requiere migración adicional. Aprobar/rechazar pertenece a HU-12.
 
 Verificación: 26 pruebas backend con H2, incluyendo alta y envío mediante los endpoints de HU-07/HU-10, consulta de anfitriones distintos, filtrado, paginación, orden, detalle, salida de revisión, validación y permisos. No se modificaron propiedades reales para probar la bandeja.
+
+
+## HU-12: decisión administrativa de publicación
+
+`POST /api/v1/hosteo/properties/pending/{id}/decision` recibe `{ "version": 1, "decision": "APPROVED", "comment": "Información validada" }`. ADMINISTRATOR activo es el único rol autorizado. La versión y decision son obligatorias; decision admite APPROVED/REJECTED. El comentario se recorta a los bordes, admite hasta 1000 caracteres y es obligatorio y no vacío para REJECTED. La respuesta 200 usa PropertyResponse y no-store.
+
+Solo PENDING_REVIEW con la versión vigente admite decisión. APPROVED cambia a PUBLISHED y fija publishedAt; REJECTED cambia a REJECTED y conserva publishedAt nulo. Ambas fijan reviewedAt/reviewComment y añaden una entrada inmutable en property_reviews con administrador, decisión, comentario, fecha y versión revisada. La cuenta del actor y la propiedad se bloquean en una transacción, se revalida el acceso y se guardan estado e historial juntos. Aprobar comprueba que la información principal persistida sea válida. No se decide sobre borradores, no hay publicación automática por el anfitrión y los registros resueltos salen de la bandeja.
+
+Un reintento idéntico del mismo administrador, con la versión revisada, devuelve el resultado vigente sin duplicar historial si aún corresponde a esa decisión. Otro administrador, otra decisión/comentario, una versión antigua o una propiedad modificada después devuelve 409. Cuenta inválida/inactiva devuelve 401, otros roles 403, propiedad inexistente 404 y datos inválidos 400. Dos decisiones concurrentes producen una única decisión y un conflicto.
+
+PropertyResponse añade publishedAt, reviewedAt y reviewComment para informar al anfitrión. Reenviar una rechazada limpia esos campos actuales, conservando el historial. Modificar información publicada la devuelve a borrador y elimina su publicación; una actualización idéntica conserva estado y versión. HU-13 integrará el catálogo público que consulte exclusivamente PUBLISHED.
+
+Aplicar `database/migrations/004_property_reviews.sql` antes de iniciar con validate: añade metadatos y crea el historial con unicidad de propiedad/versión. Se aplicó a la base PostgreSQL configurada sin decidir sobre propiedades reales. No se configura ejecución automática de migraciones.
+
+Verificación: 29 pruebas backend con H2, incluyendo aprobación, rechazo, historial, reintentos, permisos, validación, publicación retirada tras edición, reenvío y decisiones concurrentes. Las pruebas de navegador usan respuestas simuladas.

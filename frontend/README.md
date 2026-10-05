@@ -135,7 +135,7 @@ Incluye carga, lista vacía, recuperación de errores y retorno a la primera pá
 
 Desde las tarjetas o el detalle se abre `/host/properties/:id/edit`. El formulario reutiliza los campos y el diseño de HU-07, carga los datos actuales por GET y guarda por PUT con su versión. Solo confirma el guardado tras validar la respuesta. Conserva entradas ante fallos, bloquea envíos repetidos y permite cancelar sin escribir. Las consultas de lista se invalidan tras guardar.
 
-Un conflicto 409 mantiene los cambios locales y bloquea otro guardado hasta que el anfitrión elija “Descartar cambios y recargar”. Se informa que esa acción descartará sus cambios. El formulario no recarga automáticamente al recuperar foco o conexión para evitar perder entradas. Un 401 cierra la sesión; una propiedad ajena o inexistente muestra no encontrada. La edición conserva el estado de la propiedad. Desde HU-10 queda bloqueada mientras está pendiente de revisión.
+Un conflicto 409 mantiene los cambios locales y bloquea otro guardado hasta que el anfitrión elija “Descartar cambios y recargar”. Se informa que esa acción descartará sus cambios. El formulario no recarga automáticamente al recuperar foco o conexión para evitar perder entradas. Un 401 cierra la sesión; una propiedad ajena o inexistente muestra no encontrada. Desde HU-10 la edición queda bloqueada durante la revisión. Desde HU-12, modificar información publicada la devuelve a borrador para solicitar validación nuevamente; una escritura sin cambios mantiene la publicación.
 
 La revisión de navegador, con respuestas HTTP simuladas, verificó edición, guardado, recarga y cancelación en seis anchos de 375 a 1440 px sin desbordamientos ni errores JavaScript. No se proporcionó un frame específico de HU-09; se mantiene la estética existente.
 
@@ -154,6 +154,15 @@ El administrador accede desde el panel y la navegación a `/hosteo/properties/pe
 
 `/hosteo/properties/pending/:id` permite consultar descripción, tipo, dirección, ciudad, distrito, distribución, tarifa, fecha de registro/envío e identidad del anfitrión. Ambas pantallas permiten actualizar, recuperarse de errores y recargar por URL. La bandeja pagina diez solicitudes, de la más antigua a la más reciente, con página en la URL. La lista vacía y una solicitud que salió de revisión muestran mensajes explícitos. Un 401 termina la sesión. Huésped, anfitrión y soporte no acceden ni muestran enlaces a la bandeja; la consulta de soporte corresponde a HU-34.
 
-Se reutilizan cabecera y navegación del portal del personal. No hay botones de aprobación/rechazo ni cifras, fotos o documentos ficticios. Esas decisiones corresponden a HU-12 y los adjuntos requieren su contrato propio.
+Se reutilizan cabecera y navegación del portal del personal. La consulta de HU-11 no modifica estados; HU-12 añade la aprobación y el rechazo desde el expediente. No se incluyen cifras, fotos ni documentos ficticios; los adjuntos requieren su contrato propio.
 
 Verificación: 95 pruebas frontend, lint y build; navegador con respuestas HTTP simuladas para bandeja y detalle en 375, 430, 768, 1024, 1280 y 1440 px, paginación, actualización y recarga sin desbordamientos ni errores JavaScript. La adaptación móvil sigue los patrones existentes; no se aportó un frame específico adicional para HU-11.
+
+
+## HU-12: aprobar o rechazar una propiedad
+
+El expediente ofrece “Aprobar propiedad” y “Rechazar propiedad”, con confirmación explícita y la versión consultada. La aprobación cambia el estado a Publicada; el rechazo requiere un motivo de hasta 1000 caracteres. Ambas decisiones muestran confirmación solo tras validar la respuesta persistida, retiran la propiedad de pendientes y bloquean envíos repetidos. Cancelar/Escape no escriben y devuelven foco al control de origen. Los errores conservan el comentario; un conflicto ofrece actualizar el expediente y un 401 termina la sesión.
+
+El anfitrión consulta el motivo del rechazo y la fecha de publicación en su detalle. Puede corregir y reenviar una propiedad rechazada. Editar información de una publicada advierte que se retirará la publicación; el backend la devuelve a borrador y exige el flujo de validación nuevamente. El catálogo público con API de propiedades corresponde a HU-13; el catálogo de huéspedes todavía conserva sus ejemplos.
+
+Verificación: 104 pruebas frontend, lint y build aprobados. Navegador con respuestas simuladas para confirmación en seis anchos de 375 a 1440 px, aprobación, rechazo, validación del motivo, salida de la bandeja y consulta del motivo por el anfitrión, sin desbordamientos ni errores JavaScript. Se conserva el diseño del portal existente.

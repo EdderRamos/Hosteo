@@ -17,6 +17,9 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Property p where p.id = :id and p.host.id = :hostId")
     Optional<Property> findLockedOwned(@Param("id") Long id, @Param("hostId") Long hostId);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Property p where p.id = :id")
+    Optional<Property> findLockedById(@Param("id") Long id);
     @EntityGraph(attributePaths = "host")
     Page<Property> findAllByStatus(PropertyStatus status, Pageable pageable);
     @EntityGraph(attributePaths = "host")

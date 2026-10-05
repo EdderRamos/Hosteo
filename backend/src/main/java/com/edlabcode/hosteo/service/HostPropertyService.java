@@ -66,6 +66,10 @@ public class HostPropertyService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Property is under review and cannot be edited");
         var request = input.information();
         if (PropertyResponse.from(property).registration().equals(request)) return PropertyResponse.from(property);
+        if (property.getStatus() == PropertyStatus.PUBLISHED) {
+            property.setStatus(PropertyStatus.DRAFT); property.setPublishedAt(null);
+            property.setReviewedAt(null); property.setReviewComment(null);
+        }
         property.setTitle(request.title()); property.setDescription(request.description()); property.setType(request.type());
         property.setAddress(request.address()); property.setCity(request.city()); property.setDistrict(request.district());
         property.setCapacity(request.capacity()); property.setBedrooms(request.bedrooms()); property.setBeds(request.beds());
@@ -98,6 +102,7 @@ public class HostPropertyService {
         if (!validator.validate(information).isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Complete the property's principal information before submitting");
         property.setStatus(PropertyStatus.PENDING_REVIEW);
+        property.setReviewedAt(null); property.setReviewComment(null); property.setPublishedAt(null);
         property.setSubmittedAt(java.time.Instant.now());
         return PropertyResponse.from(properties.saveAndFlush(property));
     }

@@ -14,6 +14,9 @@ export const propertyResponseSchema = propertySchema.extend({
   id: z.number().int().positive(), hostId: z.number().int().positive(),
   status: z.enum(['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'REJECTED']),
   createdAt: z.string().refine(value => Number.isFinite(Date.parse(value))), updatedAt: z.string().refine(value => Number.isFinite(Date.parse(value))), version: z.number().int().nonnegative(),
+  publishedAt: z.string().refine(value => Number.isFinite(Date.parse(value))).nullable().optional(),
+  reviewedAt: z.string().refine(value => Number.isFinite(Date.parse(value))).nullable().optional(),
+  reviewComment: z.string().max(1000).nullable().optional(),
   submittedAt: z.string().refine(value => Number.isFinite(Date.parse(value))).nullable().optional(),
 })
 export type HostProperty = z.infer<typeof propertyResponseSchema>
@@ -22,3 +25,6 @@ export const typeLabels = { APARTMENT: 'Departamento', HOUSE: 'Casa', ROOM: 'Hab
 export const propertyListSchema = z.object({ items: z.array(propertyResponseSchema), total: z.number().int().nonnegative(), page: z.number().int().nonnegative(), pages: z.number().int().nonnegative() })
 export const statusLabels = { DRAFT: 'Borrador', PENDING_REVIEW: 'Pendiente de revisión', PUBLISHED: 'Publicada', REJECTED: 'Rechazada' } as const
 export const statusDescriptions = { DRAFT: 'Todavía no está publicada.', PENDING_REVIEW: 'En espera de revisión administrativa.', PUBLISHED: 'Disponible en el catálogo.', REJECTED: 'No aprobada para publicación.' } as const
+
+export const reviewDecisionSchema = z.object({ decision: z.enum(['APPROVED', 'REJECTED']), comment: z.string().trim().max(1000, 'Usa hasta 1000 caracteres.') }).refine(value => value.decision !== 'REJECTED' || value.comment.length > 0, { message: 'Indica el motivo del rechazo.', path: ['comment'] })
+export type ReviewDecisionValues = z.infer<typeof reviewDecisionSchema>

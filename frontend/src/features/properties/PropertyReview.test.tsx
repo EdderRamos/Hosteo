@@ -15,11 +15,11 @@ function setup(role: RoleCode = 'ADMINISTRATOR', path = '/hosteo/properties/pend
  return userEvent.setup()
 }
 const pageResponse = (items = [entry], page = 0, total = items.length, pages = 1) => new Response(JSON.stringify({ items, page, total, pages }))
-test('inbox opens complete pending information without decision actions', async () => {
+test('inbox opens complete pending information and decision actions', async () => {
  const fetch = vi.fn(async (url: string) => url.includes('?') ? pageResponse() : new Response(JSON.stringify(entry))); vi.stubGlobal('fetch', fetch)
  const user = setup(); await screen.findByText('host@example.test'); expect(fetch.mock.calls[0][0]).toBe('/api/v1/hosteo/properties/pending?page=0')
  await user.click(screen.getByRole('link', { name: /Revisar información de/ })); await screen.findByText('Calle 123'); expect(screen.getByText('Alojamiento luminoso.')).toBeTruthy(); expect(screen.getByText('Camas')).toBeTruthy(); expect(screen.getByText('host@example.test')).toBeTruthy()
- expect(screen.queryByRole('button', { name: /Aprobar|Rechazar/ })).toBeNull()
+ expect(screen.getByRole('button', { name: 'Aprobar propiedad' })).toBeTruthy(); expect(screen.getByRole('button', { name: 'Rechazar propiedad' })).toBeTruthy()
 })
 test('pagination uses server page and refreshes the inbox', async () => {
  const fetch = vi.fn(async (url: string) => pageResponse([{ ...entry, property: { ...entry.property, title: url.endsWith('1') ? 'Segunda página' : entry.property.title } }], url.endsWith('1') ? 1 : 0, 11, 2)); vi.stubGlobal('fetch', fetch)
