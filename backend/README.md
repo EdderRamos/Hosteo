@@ -153,3 +153,11 @@ Un reintento sobre PENDING_REVIEW acepta la versión actual o la inmediatamente 
 Aplicar `database/migrations/003_property_submission.sql` antes de arrancar con un esquema existente. Añade submitted_at si falta, de forma compatible con 002_properties.sql que ya incluía la columna. Fue aplicada a la base PostgreSQL configurada sin modificar propiedades reales. No hay ejecución automática de migraciones.
 
 Verificación: 24 pruebas backend con H2, incluyendo reenvío tras rechazo, reintentos, permisos, integridad, información incompleta, bloqueo de edición y envío concurrente con edición. La revisión del navegador usa respuestas simuladas.
+
+## HU-11: consultar propiedades pendientes de revisión
+
+Solo ADMINISTRATOR activo puede consultar `GET /api/v1/hosteo/properties/pending?page=0` y `GET /api/v1/hosteo/properties/pending/{id}`. El listado devuelve `{ items, total, page, pages }`, diez expedientes por página ordenados por submitted_at ascendente e ID ascendente. Cada expediente contiene `property` (PropertyResponse) y `host` (`id`, `firstName`, `lastName`, `email`); no expone contraseñas ni datos internos de la cuenta. La consulta carga al anfitrión junto con la propiedad.
+
+Se incluyen únicamente propiedades PENDING_REVIEW de todos los anfitriones. Un expediente inexistente o que ya salió de revisión devuelve 404. Páginas inválidas, negativas o mayores que 100000 e IDs inválidos devuelven 400. Sin sesión válida o con cuenta desactivada devuelve 401; HOST, GUEST y SUPPORT reciben 403. Los endpoints devuelven no-store y no escriben datos ni cambian estados. No requiere migración adicional. Aprobar/rechazar pertenece a HU-12.
+
+Verificación: 26 pruebas backend con H2, incluyendo alta y envío mediante los endpoints de HU-07/HU-10, consulta de anfitriones distintos, filtrado, paginación, orden, detalle, salida de revisión, validación y permisos. No se modificaron propiedades reales para probar la bandeja.

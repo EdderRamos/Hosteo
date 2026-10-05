@@ -7,3 +7,6 @@
 .staff-app .staff-danger-outline{color:#9b4434;border-color:#d8b6ab;background:#fff9f6}.staff-app .staff-green-outline{color:#256c59;border-color:#b6d1c2;background:#f0f7f2}.staff-app .staff-danger{color:white;background:#9b4434;border-color:#9b4434}.staff-confirm-danger{background:#fff5ef;border-color:#d8b6ab}.staff-status-action{white-space:nowrap}
 
 .staff-account-menu{position:absolute;right:0;top:calc(100% + 8px);width:170px;background:white;box-shadow:0 4px 16px #0002;padding:8px;border:1px solid #e4dfd8}.staff-account-menu a,.staff-account-menu button{display:block;width:100%;padding:10px;text-align:left;color:#35332e;font-size:13px;text-decoration:none}.staff-account .staff-account-menu button{position:static;box-shadow:none;width:100%;background:#f5f3ef}
+
+.staff-review-link{color:#256c59;font-size:13px;font-weight:600;display:inline-block;margin-top:12px}
+@media(max-width:768px){.staff-sidebar{flex-wrap:wrap}}

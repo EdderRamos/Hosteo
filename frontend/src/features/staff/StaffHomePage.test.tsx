@@ -121,3 +121,5 @@ test('blocks repeated status submissions while the server is saving', async () =
   finish?.()
   await screen.findByText(/Cuenta de Ana Lima desactivada/)
 })
+test('administrator has a review inbox link', async () => { setup('ADMINISTRATOR'); await screen.findByText('Ana Lima'); expect(screen.getByRole('link', { name: /Abrir bandeja de validación/ }).getAttribute('href')).toBe('/hosteo/properties/pending') })
+test('support has no review inbox link', async () => { setup('SUPPORT'); await screen.findByText('Ana Lima'); expect(screen.queryByRole('link', { name: /Abrir bandeja de validación/ })).toBeNull(); expect(screen.queryByRole('link', { name: /Revisión de propiedades/ })).toBeNull() })

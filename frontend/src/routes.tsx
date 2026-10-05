@@ -10,6 +10,8 @@ import { GuestHomePage } from './pages/GuestHomePage'
 
 export const router = createBrowserRouter([
   { path: '/', Component: HomeRedirect },
+  { path: '/hosteo/properties/pending', lazy: async () => ({ Component: (await import('./pages/PropertyReviewPages')).PendingPropertiesPage }) },
+  { path: '/hosteo/properties/pending/:id', lazy: async () => ({ Component: (await import('./pages/PropertyReviewPages')).PendingPropertyDetailPage }) },
   { path: '/hosteo', Component: StaffHomePage },
   { path: '/profile', Component: ProfilePage },
   { path: '/home', Component: HomeRedirect },

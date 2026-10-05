@@ -147,3 +147,13 @@ Las propiedades Borrador y Rechazada ofrecen “Enviar a validación” en el li
 Tras enviar se actualizan el detalle y el listado. Pendiente de revisión y Publicada no ofrecen envío; la ruta de edición también bloquea propiedades en revisión. Los errores permiten reintentar; un conflicto ofrece actualizar el estado, y un 401 termina la sesión. La fecha de envío aparece en el detalle. No se requieren fotos ni documentos para esta operación: la HU y el SRS no definen esos requisitos; se comprueba la información principal de HU-07.
 
 Verificación: 83 pruebas frontend, lint y build; navegador con respuestas HTTP simuladas en seis anchos de 375 a 1440 px, confirmación, cancelación, envío, recarga y bloqueo de edición, sin desbordamientos ni errores JavaScript. Se reutiliza el diseño existente, sin un frame específico aportado para HU-10.
+
+## HU-11: bandeja administrativa de propiedades
+
+El administrador accede desde el panel y la navegación a `/hosteo/properties/pending`. La tabla adapta el portal existente y la referencia aportada: propiedad, anfitrión, distrito, tarifa por noche, fecha de envío, estado y enlace al expediente. En móvil conserva la información en tarjetas. Los endpoints reales se consultan con TanStack Query y validación Zod; las claves separan sesión y página. Solo se aceptan registros PENDING_REVIEW con identidad de anfitrión coherente.
+
+`/hosteo/properties/pending/:id` permite consultar descripción, tipo, dirección, ciudad, distrito, distribución, tarifa, fecha de registro/envío e identidad del anfitrión. Ambas pantallas permiten actualizar, recuperarse de errores y recargar por URL. La bandeja pagina diez solicitudes, de la más antigua a la más reciente, con página en la URL. La lista vacía y una solicitud que salió de revisión muestran mensajes explícitos. Un 401 termina la sesión. Huésped, anfitrión y soporte no acceden ni muestran enlaces a la bandeja; la consulta de soporte corresponde a HU-34.
+
+Se reutilizan cabecera y navegación del portal del personal. No hay botones de aprobación/rechazo ni cifras, fotos o documentos ficticios. Esas decisiones corresponden a HU-12 y los adjuntos requieren su contrato propio.
+
+Verificación: 95 pruebas frontend, lint y build; navegador con respuestas HTTP simuladas para bandeja y detalle en 375, 430, 768, 1024, 1280 y 1440 px, paginación, actualización y recarga sin desbordamientos ni errores JavaScript. La adaptación móvil sigue los patrones existentes; no se aportó un frame específico adicional para HU-11.

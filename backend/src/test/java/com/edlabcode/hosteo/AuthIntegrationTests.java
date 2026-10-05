@@ -595,6 +595,73 @@ class AuthIntegrationTests {
         } finally { executor.shutdownNow(); }
     }
 
+    @Test
+    void administratorReviewsOnlyPendingPropertiesFromAllHosts() throws Exception {
+        var admin = createUser("admin@hosteo.test", RoleCode.ADMINISTRATOR, true);
+        String adminToken = json(login(admin.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String inbox = "/api/v1/hosteo/properties/pending";
+        assertEquals(0, json(request("GET", inbox, null, adminToken)).get("total").asInt());
+        var host = createUser("host@hosteo.test", RoleCode.HOST, true);
+        var other = createUser("other@hosteo.test", RoleCode.HOST, true);
+        String hostToken = json(login(host.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String otherToken = json(login(other.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        long firstId = 0;
+        for (int i = 0; i < 11; i++) {
+            var payload = propertyPayload(); payload.put("title", "Pending " + i);
+            String token = i % 2 == 0 ? hostToken : otherToken;
+            var created = json(request("POST", "/api/v1/host/properties", mapper.writeValueAsString(payload), token, java.util.UUID.randomUUID().toString()));
+            long id = created.get("id").asLong(); if (i == 0) firstId = id;
+            assertEquals(200, request("POST", "/api/v1/host/properties/" + id + "/submit", "{\"version\":0}", token).statusCode());
+        }
+        var excluded = json(request("POST", "/api/v1/host/properties", mapper.writeValueAsString(propertyPayload()), hostToken, java.util.UUID.randomUUID().toString()));
+        String excludedPath = inbox + "/" + excluded.get("id").asLong();
+        for (var status : new com.edlabcode.hosteo.entity.PropertyStatus[] { com.edlabcode.hosteo.entity.PropertyStatus.DRAFT, com.edlabcode.hosteo.entity.PropertyStatus.PUBLISHED, com.edlabcode.hosteo.entity.PropertyStatus.REJECTED }) {
+            var property = registeredProperties.findById(excluded.get("id").asLong()).orElseThrow(); property.setStatus(status); registeredProperties.saveAndFlush(property);
+            assertEquals(404, request("GET", excludedPath, null, adminToken).statusCode());
+        }
+        var response = request("GET", inbox, null, adminToken); assertEquals(200, response.statusCode());
+        assertEquals("no-store", response.headers().firstValue("cache-control").orElseThrow());
+        var first = json(response); assertEquals(11, first.get("total").asInt()); assertEquals(2, first.get("pages").asInt()); assertEquals(10, first.get("items").size());
+        assertEquals(firstId, first.get("items").get(0).get("property").get("id").asLong());
+        assertEquals("Pending 0", first.get("items").get(0).get("property").get("title").asText());
+        for (var item : first.get("items")) {
+            assertEquals("PENDING_REVIEW", item.get("property").get("status").asText());
+            assertEquals(item.get("property").get("hostId").asLong(), item.get("host").get("id").asLong());
+            assertNotNull(item.get("host").get("email")); assertNotNull(item.get("host").get("firstName"));
+            assertEquals(4, item.get("host").size()); assertFalse(item.toString().contains("passwordHash"));
+        }
+        var second = json(request("GET", inbox + "?page=1", null, adminToken)); assertEquals(1, second.get("items").size());
+        assertEquals("Pending 10", second.get("items").get(0).get("property").get("title").asText());
+        assertEquals(0, json(request("GET", inbox + "?page=2", null, adminToken)).get("items").size());
+        var detail = request("GET", inbox + "/" + firstId, null, adminToken); assertEquals(200, detail.statusCode());
+        assertEquals(first.get("items").get(0), json(detail));
+        assertEquals("no-store", detail.headers().firstValue("cache-control").orElseThrow());
+        var changed = registeredProperties.findById(firstId).orElseThrow(); changed.setStatus(com.edlabcode.hosteo.entity.PropertyStatus.REJECTED); registeredProperties.saveAndFlush(changed);
+        assertEquals(404, request("GET", inbox + "/" + firstId, null, adminToken).statusCode());
+        assertEquals(10, json(request("GET", inbox, null, adminToken)).get("total").asInt());
+    }
+
+    @Test
+    void pendingReviewRequiresAnActiveAdministratorAndValidParameters() throws Exception {
+        String path = "/api/v1/hosteo/properties/pending";
+        assertEquals(401, request("GET", path, null, null).statusCode());
+        for (RoleCode role : new RoleCode[] {RoleCode.GUEST, RoleCode.HOST, RoleCode.SUPPORT}) {
+            var user = createUser(role.name().toLowerCase() + "@hosteo.test", role, true);
+            String token = json(login(user.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+            assertEquals(403, request("GET", path, null, token).statusCode());
+            assertEquals(403, request("GET", path + "/1", null, token).statusCode());
+        }
+        var admin = createUser("admin@hosteo.test", RoleCode.ADMINISTRATOR, true);
+        String token = json(login(admin.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        for (String page : new String[] {"-1", "abc", "100001"}) assertEquals(400, request("GET", path + "?page=" + page, null, token).statusCode());
+        assertEquals(400, request("GET", path + "/0", null, token).statusCode());
+        assertEquals(400, request("GET", path + "/abc", null, token).statusCode());
+        assertEquals(404, request("GET", path + "/999999", null, token).statusCode());
+        admin = users.findById(admin.getId()).orElseThrow(); admin.setActive(false); users.saveAndFlush(admin);
+        assertEquals(401, request("GET", path, null, token).statusCode());
+        assertEquals(401, request("GET", path + "/1", null, token).statusCode());
+    }
+
     private User createUser(String email, RoleCode code, boolean active) {
         var user = new User();
         user.setEmail(email);
