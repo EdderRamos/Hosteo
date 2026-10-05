@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { login } from '../api/auth'
 import { loginSchema, type LoginValues } from '../schemas/login'
 import { saveSession } from '../session'
 
 export function LoginForm() {
+  const navigate = useNavigate()
   const [visible, setVisible] = useState(false)
   const { register, handleSubmit, setError, clearErrors, formState: { errors, isSubmitting } } = useForm<LoginValues>({ defaultValues: { email: '', password: '', remember: false } })
 
@@ -26,6 +27,7 @@ export function LoginForm() {
     try {
       const response = await login(parsed.data)
       saveSession(response.accessToken, response.user, values.remember)
+      navigate('/home', { replace: true })
     } catch (error) {
       setError('root', { message: error instanceof Error ? error.message : 'No pudimos iniciar sesión. Intenta nuevamente.' })
     }

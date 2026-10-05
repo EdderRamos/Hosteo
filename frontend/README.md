@@ -12,7 +12,7 @@ Landing y flujo de autenticación de Hosteo, construidos con React 19, TypeScrip
 
 ## Desarrollo local
 
-El inicio reproduce el frame de catálogo proporcionado por el usuario. Usa seis alojamientos de ejemplo y permite combinar filtros por distrito, precio y capacidad. Las fechas se validan localmente; no se consulta disponibilidad ni se crean reservas. Los botones de disponibilidad abren una vista previa y las funciones pendientes muestran un aviso. El usuario del encabezado es una muestra identificada como demo. No se agregaron servicios ni cambios al backend.
+El inicio reproduce el frame de catálogo proporcionado por el usuario. Usa seis alojamientos de ejemplo y permite combinar filtros por distrito, precio y capacidad. Las fechas se validan localmente; no se consulta disponibilidad ni se crean reservas. Los botones de disponibilidad abren una vista previa y las funciones pendientes muestran un aviso. El encabezado muestra la sesión real cuando el usuario inicia sesión. No se agregaron servicios ni cambios al backend.
 
 Las fotografías reutilizan assets existentes: son aproximaciones porque el MCP de Figma alcanzó su cuota y la referencia disponible fue la captura. El logo usa el asset único de Hosteo aportado por el usuario.
 
@@ -66,3 +66,11 @@ El registro muestra carga, errores de campos, correo duplicado, errores de red y
 La imagen `src/assets/hosteo-logo.png`, aportada por el usuario, es el logo único. El componente `Brand` la reutiliza en inicio, login, registro, recuperación y footer; el favicon usa el mismo asset. En fondos oscuros se presenta sobre un soporte claro, sin recolorear ni sustituir el logo. Se conserva su resolución original (151×40).
 
 La implementación inicial fue validada con 22 pruebas de frontend, lint y build; revisión visual a 375, 430, 768, 1024, 1280 y 1448 px sin desbordamientos ni errores JavaScript. Las pruebas HTTP usan respuestas simuladas. Una prueba real de alta e inicio de sesión requiere backend activo y datos autorizados; no se crearon cuentas en la base real durante esta implementación.
+
+## HU-03: perfil personal y sesión en home
+
+`/home` muestra el usuario autenticado y permite abrir `/profile` o cerrar sesión. Un login exitoso navega al home. El token conserva el mecanismo de sesión existente: `sessionStorage` por defecto, `localStorage` al marcar mantener sesión, restauración por `/auth/me` y expiración del JWT. No se guardan contraseñas ni datos del perfil en esos almacenes.
+
+`/profile` reproduce la estructura de la captura aportada: identidad, datos básicos, biografía, ocupación, ubicación, idiomas, intereses y contacto. Consulta `GET /api/v1/customer/profile` y guarda con `PUT` al mismo endpoint, con bearer token y la versión recibida. Solo actualiza el nombre en el encabezado tras confirmar el guardado. Permite descartar cambios, reintentar carga y conserva el formulario ante errores o conflictos de versión. Un 401 limpia la sesión. El backend autoriza huéspedes y anfitriones.
+
+La edición de foto está temporalmente deshabilitada. El formulario y el PUT no incluyen `avatarUrl`; el servicio conserva la foto existente. Los controles para añadir idiomas e intereses se despliegan desde las opciones del diseño. Los datos vacíos permanecen vacíos, sin inventar la identidad de la captura. El diseño móvil se infiere del desktop. La revisión del flujo usa respuestas HTTP simuladas; validar persistencia en la base real requiere iniciar sesión con una cuenta existente y guardar desde la interfaz.

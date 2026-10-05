@@ -55,7 +55,6 @@ public class CustomerProfileService {
         user.setBiography(clean(request.biography()));
         user.setOccupation(clean(request.occupation()));
         user.setLocation(clean(request.location()));
-        user.setAvatarUrl(request.avatarUrl());
         user.getLanguages().clear();
         for (var language : request.languages()) {
             var value = new ProfileLanguage();

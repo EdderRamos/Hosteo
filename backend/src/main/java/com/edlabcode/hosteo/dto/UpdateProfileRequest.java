@@ -16,7 +16,6 @@ public record UpdateProfileRequest(
         @Size(max = 500) String biography,
         @Size(max = 150) String occupation,
         @Size(max = 150) String location,
-        @Size(max = 2048) @Pattern(regexp = "https://[^\\s]+") String avatarUrl,
         @NotNull @Size(max = 20) List<@NotNull @Valid LanguageRequest> languages,
         @NotNull @Size(max = 30) List<@NotBlank @Size(max = 100) String> interests,
         @NotNull @PositiveOrZero Long version) {

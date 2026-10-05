@@ -148,6 +148,30 @@ class AuthIntegrationTests {
         assertEquals(401, request("GET", "/api/v1/auth/me", null, token).statusCode());
     }
 
+    @Test
+    void profileUpdatesPreserveExistingPhotoWhilePhotoEditingIsDisabled() throws Exception {
+        var user = createUser("profile@hosteo.test", RoleCode.GUEST, true);
+        user.setAvatarUrl("https://example.com/original.jpg");
+        users.saveAndFlush(user);
+        String token = json(login(user.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        var profile = json(request("GET", "/api/v1/customer/profile", null, token));
+        var payload = new java.util.HashMap<String, Object>();
+        payload.put("firstName", "Updated");
+        payload.put("lastName", "User");
+        payload.put("email", user.getEmail());
+        payload.put("languages", java.util.List.of());
+        payload.put("interests", java.util.List.of());
+        payload.put("version", profile.get("version").asLong());
+        var updated = request("PUT", "/api/v1/customer/profile", mapper.writeValueAsString(payload), token);
+        assertEquals(200, updated.statusCode());
+        assertEquals("https://example.com/original.jpg", json(updated).get("avatarUrl").asText());
+        payload.put("version", json(updated).get("version").asLong());
+        payload.put("avatarUrl", "https://example.com/replacement.jpg");
+        var attemptedPhoto = request("PUT", "/api/v1/customer/profile", mapper.writeValueAsString(payload), token);
+        assertTrue(attemptedPhoto.statusCode() == 200 || attemptedPhoto.statusCode() == 400);
+        assertEquals("https://example.com/original.jpg", users.findById(user.getId()).orElseThrow().getAvatarUrl());
+    }
+
     private User createUser(String email, RoleCode code, boolean active) {
         var user = new User();
         user.setEmail(email);

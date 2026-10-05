@@ -40,6 +40,12 @@ export function saveSession(token: string, user: AuthUser, remember: boolean) {
   activate(token, user)
   try { (remember ? localStorage : sessionStorage).setItem(KEY, token) } catch { /* Memory-only fallback. */ }
 }
+export function updateSessionUser(user: AuthUser, token: string) {
+  if (!session || session.accessToken !== token) return
+  session = { ...session, user }
+  revision += 1
+  notify()
+}
 export async function restoreSession(signal: AbortSignal) {
   const initialRevision = revision
   let token: string | null

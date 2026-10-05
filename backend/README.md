@@ -77,3 +77,5 @@ Fields: `firstName`, `lastName`, `email`, `phone`, `gender`, `dateOfBirth`, `bio
 Biography is limited to 500 characters, dates of birth must be in the past, avatar URLs must use HTTPS, and duplicate languages/interests are rejected. Avatar files must already be uploaded; this endpoint stores a URL only. Email remains unique and normalized. Verification of contact details is not implemented by this endpoint.
 
 Use the `version` returned by GET to save changes. Stale versions return 409 PROFILE_CONFLICT. Role, activation state, password, membership date and user ID are not editable. Profile updates and collections are saved transactionally. Hibernate update adds the profile columns and `user_languages`/`user_interests` tables in local development.
+
+El perfil usa `GET` y `PUT /api/v1/customer/profile`. La edición de foto está temporalmente deshabilitada: `avatarUrl` sigue disponible en la respuesta para mostrar una foto existente, pero no forma parte de `UpdateProfileRequest` y el servicio conserva su valor al actualizar los demás datos.
