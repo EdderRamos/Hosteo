@@ -114,3 +114,13 @@ Se renombraron `GuestHomePage`, `GuestHeader`, `GuestCatalog`, estilos, selector
 Esta migración no declara terminado todo el MVP: el catálogo sigue siendo una demostración y los módulos del anfitrión no implementan aún sus operaciones de negocio.
 
 Verificación de esta migración: 44 pruebas frontend, lint y build aprobados; 16 pruebas backend aprobadas tras `./mvnw clean test`. Revisión en navegador con respuestas simuladas: navegación y perfil para los cuatro roles; portal de personal y anfitrión en seis tamaños de 375 a 1440 px; catálogo del huésped en móvil. Sin errores JavaScript ni desbordamientos de página. No se modificaron cuentas ni códigos de rol en PostgreSQL.
+
+## HU-07: registro de propiedad del anfitrión
+
+`/host` permite abrir `/host/properties/new`. Solo HOST accede al formulario: título, descripción, tipo (departamento/casa/habitación), dirección, ciudad, distrito, huéspedes, habitaciones, camas, baños, tarifa por noche y moneda PEN/USD. Se siguen los colores, tipografías y componentes existentes; no se recibió un frame específico para esta HU.
+
+React Hook Form y Zod validan antes del envío; TanStack Query administra creación y consulta. Se conservan los datos ante errores, se deshabilita el formulario durante el guardado y se reutiliza `Idempotency-Key` al reintentar los mismos datos. La confirmación `/host/properties/:id` muestra datos persistidos, se puede recargar y confirma que la propiedad queda como borrador sin publicación. Los datos no se guardan en almacenamiento web. Un 401 termina la sesión.
+
+La aplicación consume POST y GET reales de `/api/v1/host/properties`. Fotos, listado de propiedades, edición y envío a validación corresponden a flujos posteriores. El catálogo de huéspedes conserva sus ejemplos hasta integrar propiedades publicadas.
+
+Verificación: lint, build y 55 pruebas frontend aprobadas; pruebas de permisos, validación, errores, reintento idempotente y confirmación. Las respuestas HTTP del frontend se simulan; las pruebas del backend verifican persistencia y seguridad con H2.

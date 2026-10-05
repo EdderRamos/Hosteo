@@ -114,3 +114,15 @@ No requiere una nueva migración: reutiliza `users.active` y la columna de HU-05
 El resumen de personal devuelve `{ "guests": 0, "hosts": 0, "administrators": 0, "support": 0 }`, sin agregar huésped y anfitrión en un solo grupo. `/api/v1/guest/**`, `/api/v1/host/**`, `/api/v1/admin/**` y `/api/v1/support/**` conservan permisos independientes. `/api/v1/hosteo/**` continúa compartido exclusivamente por administrador y soporte, con escrituras limitadas al administrador.
 
 No se cambia ningún rol existente ni el esquema de datos: el modelo ya usa los cuatro códigos. Tras renombrar clases, ejecutar una compilación limpia para eliminar clases antiguas del directorio generado `target`. Esto alinea las funcionalidades existentes; propiedades, calendario, reservas y pagos siguen pendientes según las HUs documentadas.
+
+## HU-07: host property registration
+
+Apply `database/migrations/002_properties.sql` before starting against an existing PostgreSQL schema. It creates property storage, constraints and indexes, including a unique host/registration-key pair. Migration execution is manual; the migration was applied to the configured local database during implementation.
+
+`POST /api/v1/host/properties` requires an active HOST bearer token and a UUID `Idempotency-Key` header. Fields: `title` (150), `description` (5000), `type` (APARTMENT/HOUSE/ROOM), `address` (255), `city`/`district` (100), `capacity`/`beds` (integer >=1), `bedrooms`/`bathrooms` (integer >=0), `nightlyRate` (0.01 through 9999999999.99, at most two decimals), `currency` (PEN/USD). Text fields are required and trimmed. Ownership comes from the JWT; status is always DRAFT.
+
+Creation returns 201, the persisted property and its `Location`. An identical retry with the same key returns 200 and the same record; a different payload with that key returns 409. A transaction locks the host account and rechecks active status, role and session revision before saving. Validation returns 400, missing/invalid sessions 401, other roles 403.
+
+`GET /api/v1/host/properties/{id}` returns the authenticated host's property for confirmation and reload. Missing and foreign properties both return 404. Both endpoints return `Cache-Control: no-store`. Listing, editing, photos, submission for review and publication are separate stories.
+
+The 19 backend tests pass with H2, covering server ownership, DRAFT status, input/header validation, role and active-account restrictions, foreign-property access, duplicate retries and conflicting registration keys. PostgreSQL migration and local OpenAPI endpoints were verified separately; browser responses were simulated without creating test properties in the real database.

@@ -1,3 +1,4 @@
+import { QueryProvider } from './app/QueryProvider'
 import { RouterProvider } from 'react-router'
 import { useEffect, useState } from 'react'
 import { restoreSession } from './features/auth/session'
@@ -20,7 +21,7 @@ function App() {
     }
   }, [])
   if (!ready) return <main role="status">Verificando sesión…</main>
-  return <RouterProvider router={router} />
+  return <QueryProvider><RouterProvider router={router} /></QueryProvider>
 }
 
 export default App

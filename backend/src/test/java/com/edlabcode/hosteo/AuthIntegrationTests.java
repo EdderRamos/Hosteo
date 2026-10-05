@@ -6,6 +6,7 @@ import com.edlabcode.hosteo.entity.RoleCode;
 import com.edlabcode.hosteo.entity.User;
 import com.edlabcode.hosteo.repository.RoleRepository;
 import com.edlabcode.hosteo.repository.UserRepository;
+import com.edlabcode.hosteo.repository.PropertyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,8 @@ class AuthIntegrationTests {
     @Autowired
     private UserRepository users;
     @Autowired
+    private PropertyRepository registeredProperties;
+    @Autowired
     private RoleRepository roles;
     @Autowired
     private PasswordEncoder passwords;
@@ -50,6 +53,7 @@ class AuthIntegrationTests {
 
     @BeforeEach
     void prepareRoles() {
+        registeredProperties.deleteAll();
         users.deleteAll();
         for (RoleCode code : RoleCode.values()) {
             if (roles.findByCode(code).isEmpty()) {
@@ -341,6 +345,90 @@ class AuthIntegrationTests {
             assertEquals(1, json(response).get(field).asInt());
     }
 
+    private Map<String, Object> propertyPayload() {
+        var payload = new java.util.HashMap<String, Object>();
+        payload.put("title", "  Departamento Miraflores  ");
+        payload.put("description", "Alojamiento luminoso cerca del parque.");
+        payload.put("type", "APARTMENT"); payload.put("address", "Calle de Prueba 123");
+        payload.put("city", "Lima"); payload.put("district", "Miraflores");
+        payload.put("capacity", 4); payload.put("bedrooms", 2); payload.put("beds", 3); payload.put("bathrooms", 1);
+        payload.put("nightlyRate", new java.math.BigDecimal("180.50")); payload.put("currency", "PEN");
+        return payload;
+    }
+
+    @Test
+    void hostRegistersDraftWithServerOwnershipAndCanReloadItsConfirmation() throws Exception {
+        var host = createUser("host@hosteo.test", RoleCode.HOST, true);
+        var other = createUser("other@hosteo.test", RoleCode.HOST, true);
+        String token = json(login(host.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        var payload = propertyPayload();
+        payload.put("hostId", other.getId()); payload.put("status", "PUBLISHED");
+        var response = request("POST", "/api/v1/host/properties", mapper.writeValueAsString(payload), token, java.util.UUID.randomUUID().toString());
+        assertEquals(201, response.statusCode());
+        var property = json(response);
+        assertEquals(host.getId().longValue(), property.get("hostId").asLong());
+        assertEquals("DRAFT", property.get("status").asText());
+        assertEquals("Departamento Miraflores", property.get("title").asText());
+        assertEquals("PEN", property.get("currency").asText());
+        assertNotNull(property.get("createdAt"));
+        assertEquals("no-store", response.headers().firstValue("cache-control").orElseThrow());
+        String location = response.headers().firstValue("location").orElseThrow();
+        assertEquals("/api/v1/host/properties/" + property.get("id").asLong(), location);
+        var read = request("GET", location, null, token);
+        assertEquals(200, read.statusCode());
+        assertEquals(property.get("id").asLong(), json(read).get("id").asLong());
+        String otherToken = json(login(other.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        assertEquals(404, request("GET", location, null, otherToken).statusCode());
+        assertEquals(404, request("GET", "/api/v1/host/properties/999999", null, token).statusCode());
+    }
+
+    @Test
+    void registrationRequiresActiveHostAndValidPrincipalInformation() throws Exception {
+        String body = mapper.writeValueAsString(propertyPayload());
+        String key = java.util.UUID.randomUUID().toString();
+        assertEquals(401, request("POST", "/api/v1/host/properties", body, null, key).statusCode());
+        for (RoleCode role : new RoleCode[] {RoleCode.GUEST, RoleCode.SUPPORT, RoleCode.ADMINISTRATOR}) {
+            var user = createUser(role.name().toLowerCase() + "@hosteo.test", role, true);
+            String token = json(login(user.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+            assertEquals(403, request("POST", "/api/v1/host/properties", body, token, key).statusCode());
+            assertEquals(403, request("GET", "/api/v1/host/properties/1", null, token).statusCode());
+        }
+        var host = createUser("host@hosteo.test", RoleCode.HOST, true);
+        String token = json(login(host.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        assertEquals(400, request("POST", "/api/v1/host/properties", body, token).statusCode());
+        assertEquals(400, request("POST", "/api/v1/host/properties", body, token, "invalid").statusCode());
+        assertEquals(400, request("POST", "/api/v1/host/properties", "{}", token, key).statusCode());
+        for (var invalid : Map.<String, Object>of("title", " ", "description", "", "address", " ", "city", "", "district", "", "capacity", 0, "beds", 0, "bedrooms", -1, "bathrooms", -1).entrySet()) {
+            var payload = propertyPayload(); payload.put(invalid.getKey(), invalid.getValue());
+            assertEquals(400, request("POST", "/api/v1/host/properties", mapper.writeValueAsString(payload), token, key).statusCode(), invalid.getKey());
+        }
+        for (var invalid : Map.<String, Object>of("type", "PALACE", "currency", "EUR", "nightlyRate", new java.math.BigDecimal("0.001")).entrySet()) {
+            var payload = propertyPayload(); payload.put(invalid.getKey(), invalid.getValue());
+            assertEquals(400, request("POST", "/api/v1/host/properties", mapper.writeValueAsString(payload), token, key).statusCode(), invalid.getKey());
+        }
+        assertEquals(0, registeredProperties.count());
+        host = users.findById(host.getId()).orElseThrow(); host.setActive(false); users.saveAndFlush(host);
+        assertEquals(401, request("POST", "/api/v1/host/properties", body, token, key).statusCode());
+    }
+
+    @Test
+    void retryKeyPreventsDuplicatePropertiesAndRejectsChangedData() throws Exception {
+        var host = createUser("host@hosteo.test", RoleCode.HOST, true);
+        String token = json(login(host.getEmail(), "ValidPassword123!")).get("accessToken").asText();
+        String key = java.util.UUID.randomUUID().toString();
+        String body = mapper.writeValueAsString(propertyPayload());
+        var created = request("POST", "/api/v1/host/properties", body, token, key);
+        var retried = request("POST", "/api/v1/host/properties", body, token, key);
+        assertEquals(201, created.statusCode()); assertEquals(200, retried.statusCode());
+        assertEquals(json(created).get("id").asLong(), json(retried).get("id").asLong());
+        assertEquals(1, registeredProperties.count());
+        var changed = propertyPayload(); changed.put("title", "Different property");
+        assertEquals(409, request("POST", "/api/v1/host/properties", mapper.writeValueAsString(changed), token, key).statusCode());
+        assertEquals(1, registeredProperties.count());
+        var zeros = propertyPayload(); zeros.put("bedrooms", 0); zeros.put("bathrooms", 0); zeros.put("type", "ROOM"); zeros.put("currency", "USD");
+        assertEquals(201, request("POST", "/api/v1/host/properties", mapper.writeValueAsString(zeros), token, java.util.UUID.randomUUID().toString()).statusCode());
+    }
+
     private User createUser(String email, RoleCode code, boolean active) {
         var user = new User();
         user.setEmail(email);
@@ -362,7 +450,12 @@ class AuthIntegrationTests {
     }
 
     private HttpResponse<String> request(String method, String path, String body, String token) throws Exception {
+        return request(method, path, body, token, null);
+    }
+
+    private HttpResponse<String> request(String method, String path, String body, String token, String registrationKey) throws Exception {
         var builder = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path));
+        if (registrationKey != null) builder.header("Idempotency-Key", registrationKey);
         if (token != null) {
             builder.header("Authorization", "Bearer " + token);
         }

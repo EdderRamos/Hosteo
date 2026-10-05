@@ -21,7 +21,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
     public ResponseEntity<ApiError> status(org.springframework.web.server.ResponseStatusException exception) {
         int status = exception.getStatusCode().value();
-        return ResponseEntity.status(status).body(ApiError.of(status, status == 409 ? "USER_CONFLICT" : "STAFF_REQUEST_ERROR", exception.getReason()));
+        return ResponseEntity.status(status).body(ApiError.of(status, status == 409 ? "CONFLICT" : "REQUEST_ERROR", exception.getReason()));
+    }
+
+    @ExceptionHandler({org.springframework.web.bind.MissingRequestHeaderException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ApiError> invalidParameter(Exception exception) {
+        return ResponseEntity.badRequest().body(ApiError.of(400, "VALIDATION_ERROR", "Check the submitted parameters"));
     }
 
     @ExceptionHandler(InvalidProfileException.class)
