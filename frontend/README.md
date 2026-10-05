@@ -4,12 +4,17 @@ Landing y flujo de autenticación de Hosteo, construidos con React 19, TypeScrip
 
 ## Pantallas
 
-- `/`: inicio, buscador, alojamientos, destinos e información de Hosteo.
+- `/`: redirige al inicio predeterminado `/home`.
+- `/home`: catálogo “Home: Customer” con buscador y filtros locales.
 - `/login`: inicio de sesión.
-- `/register`: registro de cuenta de huésped conectado a la API.
+- `/register`: registro de cuenta conectado a la API.
 - `/forgot-password`: recuperación de acceso.
 
 ## Desarrollo local
+
+El inicio reproduce el frame de catálogo proporcionado por el usuario. Usa seis alojamientos de ejemplo y permite combinar filtros por distrito, precio y capacidad. Las fechas se validan localmente; no se consulta disponibilidad ni se crean reservas. Los botones de disponibilidad abren una vista previa y las funciones pendientes muestran un aviso. El usuario del encabezado es una muestra identificada como demo. No se agregaron servicios ni cambios al backend.
+
+Las fotografías reutilizan assets existentes: son aproximaciones porque el MCP de Figma alcanzó su cuota y la referencia disponible fue la captura. El logo usa el asset único de Hosteo aportado por el usuario.
 
 ```bash
 npm ci
