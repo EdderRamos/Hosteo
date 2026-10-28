@@ -257,3 +257,11 @@ Validación focalizada: una prueba de integración H2 para búsqueda, pago ausen
 Validación esencial: `OperationsIntegrationTests#catalogFiltersCombineBeforePaginationAndOnlyExposePublishedProperties`, con H2 aislada, comprueba filtros combinados, paginación, monedas, exclusión de borradores y parámetros inválidos.
 
 La búsqueda `query` ignora mayúsculas y espacios extremos, trata `%` y `_` como texto literal y se combina con los otros criterios antes de paginar. La interfaz guest vigente no envía filtros regionales.
+
+### Conexiones del pool y recuperación del login
+
+El pool Hikari utiliza por defecto hasta 5 conexiones y mantiene 1 conexión mínima en reposo, configurables con `DB_POOL_MAX_SIZE` y `DB_POOL_MIN_IDLE`. Espera hasta 10 segundos para obtener una conexión y valida en hasta 3 segundos.
+
+Si Supabase devuelve `EMAXCONNSESSION` en el pooler de sesiones (puerto 5432), el servicio puede quedar sin conexiones aunque las credenciales sean correctas. La configuración local se ajustó al pooler de transacciones (6543), con `prepareThreshold=0` y `sslmode=require` en `DB_URL`; las credenciales permanecen únicamente en `.env`, ignorado por Git. La URL de un PostgreSQL local puede seguir usando su puerto 5432 habitual.
+
+Se comprobó el incidente con `SELECT 1` (5432 rechazado por límite de 15 clientes; 6543 correcto). Tras el ajuste: health UP, login e identidad HTTP 200 para los cuatro roles de demostración, contraseña incorrecta HTTP 401 y login de soporte desde el navegador correcto. Prueba aislada ejecutada: `AuthIntegrationTests#everyRoleCanLoginAndAccessItsOwnIdentity` con H2.

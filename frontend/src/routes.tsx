@@ -6,7 +6,6 @@ import { LoginPage } from './pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { HomeRedirect } from './pages/HomeRedirect'
 import { StaffHomePage } from './pages/StaffHomePage'
-import { HostHomePage } from './pages/HostHomePage'
 
 export const router = createBrowserRouter([
   { path: '/support/bookings', lazy: async () => ({ Component: (await import('./pages/SupportOperationsPages')).SupportBookingsPage }) },
@@ -35,7 +34,7 @@ export const router = createBrowserRouter([
   { path: '/profile', Component: ProfilePage },
   { path: '/home', Component: HomeRedirect },
   { path: '/guest', lazy: async () => ({ Component: (await import('./pages/GuestHomePage')).GuestHomePage }) },
-  { path: '/host', Component: HostHomePage },
+  { path: '/host', lazy: async () => ({ Component: (await import('./pages/HostHomePage')).HostHomePage }) },
   { path: '/host/properties', lazy: async () => ({ Component: (await import('./pages/HostPropertyPages')).HostPropertiesPage }) },
   { path: '/host/properties/new', lazy: async () => ({ Component: (await import('./pages/HostPropertyPages')).RegisterPropertyPage }) },
   { path: '/host/properties/:id/edit', lazy: async () => ({ Component: (await import('./pages/HostPropertyPages')).EditPropertyPage }) },
