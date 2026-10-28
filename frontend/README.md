@@ -256,3 +256,17 @@ El catálogo permite combinar búsqueda por texto (`query`, nombre y descripció
 La verificación inicial de sesión presenta un shimmer adaptable, con estado accesible y animación desactivada con `prefers-reduced-motion`. Se conserva el logo existente.
 
 Verificado con tres pruebas de catálogo, compilación local, lint y revisión visual a 375, 768 y 1440 px. Los filtros y su limpieza se comprobaron contra el backend local; la carga de sesión se revisó con una respuesta demorada simulada.
+
+### Alineación visual de los portales
+
+`src/styles/portal-theme.css` extiende el lenguaje visual del catálogo guest a las rutas activas de acceso, perfil, anfitrión, reservas, pagos, calendarios, reportes, revisión administrativa y soporte. Centraliza superficies cálidas, verde Hosteo, tipografía Inter/Playfair Display, bordes, tarjetas, controles, indicadores y navegación. Conserva el logo, imágenes editoriales, contratos HTTP y permisos existentes. La navegación del personal usa una columna lateral en escritorio y enlaces que se ajustan en móvil.
+
+`PageLoading` se comparte entre estados de consulta: muestra un shimmer con su etiqueta accesible y respeta movimiento reducido. Los mensajes de confirmación conservan sus estados de éxito; no se presentan como cargas.
+
+Validación: 19 pruebas seleccionadas de reservas/pagos, reportes, soporte, listado de propiedades y perfil, con `VITE_API_URL=/api/v1` para el contrato esperado por sus mocks. Lint y compilación local. La revisión de las pantallas usa fixtures HTTP de solo lectura para mostrar estados con datos sin escribir en la base.
+
+Revisión visual final: 33 rutas a 375, 430, 768, 1024, 1280 y 1440 px (198 combinaciones), sin desbordamiento horizontal ni errores JavaScript con los fixtures de revisión. Se inspeccionaron capturas de administración, perfil, formulario de propiedades, resumen del anfitrión y detalle de soporte, corrigiendo ajuste del buscador y contraste de las pestañas.
+
+Ajustes posteriores: el menú del personal utiliza SVG y conserva únicamente accesos de las HUs; se retiraron Unidades Lima, Tarifas de temporada, Check-in/Recepción y Liquidaciones. La cuadrícula del personal reserva la primera fila para el encabezado sin espacio sobrante. Login presenta el logo dentro del panel, como registro. Las vistas operativas del huésped reúnen Propiedades y Mis reservas en una sola navegación del encabezado. Verificación: 20 pruebas relevantes y revisión de las pantallas afectadas en seis resoluciones con fixtures de solo lectura.
+
+El menú del personal distingue secciones no interactivas y enlaces de subsección: Administración, Alojamientos, Reservas y pagos, y Reportes para administradores; Cuentas, Atención al usuario y Operación para soporte. La ruta y el hash determinan el único destino activo con `aria-current="page"`; los detalles mantienen activo su listado de origen. No se agregan rutas ni permisos. Verificado en seis resoluciones para reportes, reservas y soporte, con 12 pruebas del portal y compilación/lint correctos.

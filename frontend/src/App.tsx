@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { restoreSession } from './features/auth/session'
 import { router } from './routes'
 import { SessionShimmer } from './shared/ui/SessionShimmer'
+import './styles/portal-theme.css'
 
 function App() {
   const [ready, setReady] = useState(false)

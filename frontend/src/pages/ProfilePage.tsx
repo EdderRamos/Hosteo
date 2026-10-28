@@ -1,3 +1,4 @@
+import { PageLoading } from '../shared/ui/PageLoading'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { useForm, useWatch } from 'react-hook-form'
@@ -25,7 +26,7 @@ export function ProfilePage() {
     })
     return () => controller.abort()
   }, [token, retry])
-  return <div className="guest-home"><AccountHeader /><main className="guest-container profile-main"><p className="profile-breadcrumb"><Link to={homePath(session?.user.roleCode)}>Inicio</Link> / <strong>Perfil personal</strong></p>{!session ? <section className="profile-panel"><h1>Perfil personal</h1><p>Inicia sesión para consultar y actualizar tus datos.</p><Link to="/login">Iniciar sesión</Link></section> : error ? <section className="profile-panel"><p role="alert">{error}</p><button onClick={() => setRetry(retry + 1)}>Reintentar</button></section> : profile && profile.id === session.user.id ? <ProfileEditor key={token} profile={profile} token={session.accessToken} onSaved={setProfile} /> : <p role="status">Cargando perfil…</p>}</main></div>
+  return <div className="guest-home"><AccountHeader /><main className="guest-container profile-main"><p className="profile-breadcrumb"><Link to={homePath(session?.user.roleCode)}>Inicio</Link> / <strong>Perfil personal</strong></p>{!session ? <section className="profile-panel"><h1>Perfil personal</h1><p>Inicia sesión para consultar y actualizar tus datos.</p><Link to="/login">Iniciar sesión</Link></section> : error ? <section className="profile-panel"><p role="alert">{error}</p><button onClick={() => setRetry(retry + 1)}>Reintentar</button></section> : profile && profile.id === session.user.id ? <ProfileEditor key={token} profile={profile} token={session.accessToken} onSaved={setProfile} /> : <PageLoading label="Cargando perfil…" />}</main></div>
 }
 
 function ProfileEditor({ profile, token, onSaved }: { profile: Profile; token: string; onSaved: (profile: Profile) => void }) {

@@ -1,7 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;1,500&display=swap');
 
 .login-page { --login-ink: #221d19; --login-muted: #756f69; --login-surface: #f6f3ef; --login-green: #236957; min-height: 100dvh; background: var(--login-surface); color: var(--login-ink); font: 14px/1.45 'Inter', sans-serif; padding: 24px 40px; }
-.login-header { position: sticky; top: 0; z-index: 1000; max-width: 1328px; margin: 0 auto 32px; padding-block: 12px; background: var(--login-surface); }
 .login-main { max-width: 1348px; margin: auto; }
 .login-card { display: grid; grid-template-columns: 5fr 7fr; max-width: 1180px; min-height: 933px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 20px 25px -5px #0000001a, 0 8px 10px -6px #0000001a; }
 .login-editorial { position: relative; min-width: 0; }
@@ -52,5 +51,5 @@
 .login-footer { max-width: 1328px; margin: 40px auto 0; padding-top: 17px; border-top: 1px solid #ded8d1; display: flex; justify-content: space-between; gap: 16px; color: var(--login-muted); font-size: 11px; }
 .login-footer b { margin: 0 8px; font-weight: 400; }
 @media (max-width: 1100px) { .login-panel { padding: 40px; } .login-editorial__content { padding: 32px; } }
-@media (max-width: 767px) { .login-page { padding: 24px 20px; } .login-header { margin-bottom: 24px; } .login-card { grid-template-columns: 1fr; min-height: 0; } .login-editorial { display: none; } .login-panel { padding: 32px 24px; } .login-footer { flex-direction: column; margin-top: 24px; } }
+@media (max-width: 767px) { .login-page { padding: 24px 20px; } .login-card { grid-template-columns: 1fr; min-height: 0; } .login-editorial { display: none; } .login-panel { padding: 32px 24px; } .login-footer { flex-direction: column; margin-top: 24px; } }
 @media (max-width: 430px) { .login-heading h1 { font-size: 29px; } .login-panel { padding: 28px 20px; } .login-remember { font-size: 12px; } }
