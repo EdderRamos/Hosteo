@@ -2,7 +2,7 @@
 
 .guest-home { --guest-ink: #211e1a; --guest-muted: #847e78; --guest-green: #287e6b; background: #fbf9f6; color: var(--guest-ink); font: 14px/1.5 'Inter', sans-serif; min-height: 100dvh; }
 .guest-container { width: min(1200px, calc(100% - 112px)); margin: auto; }
-.guest-header { background: white; border-bottom: 1px solid #e3ddd6; box-shadow: 0 2px 7px #00000004; }
+.guest-header { position: sticky; top: 0; z-index: 1000; background: white; border-bottom: 1px solid #e3ddd6; box-shadow: 0 2px 7px #00000004; }
 .guest-header-inner { display: flex; align-items: center; justify-content: space-between; gap: 28px; min-height: 80px; }
 .guest-header nav { display: flex; gap: 24px; align-items: center; }
 .guest-header nav a, .guest-header nav button { color: #5b5550; font-size: 14px; font-weight: 600; text-decoration: none; border: 0; background: none; padding: 12px 0; cursor: pointer; }

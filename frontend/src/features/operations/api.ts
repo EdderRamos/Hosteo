@@ -45,7 +45,7 @@ async function call<T>(path: string, token: string | undefined, schema: z.ZodTyp
   }
 }
 const json = (method: string, body: unknown): RequestInit => ({ method, body: JSON.stringify(body) })
-export const catalogFilterKeys = ['district', 'type', 'guests', 'currency', 'minPrice', 'maxPrice'] as const
+export const catalogFilterKeys = ['query', 'type', 'guests', 'currency', 'minPrice', 'maxPrice'] as const
 export const catalog = (pageNumber: number, signal?: AbortSignal, filters = new URLSearchParams()) => {
   const query = new URLSearchParams({ page: String(pageNumber) })
   for (const key of catalogFilterKeys) { const value = filters.get(key); if (value) query.set(key, value) }

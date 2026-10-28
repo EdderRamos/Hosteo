@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;1,500&display=swap');
 
 .login-page { --login-ink: #221d19; --login-muted: #756f69; --login-surface: #f6f3ef; --login-green: #236957; min-height: 100dvh; background: var(--login-surface); color: var(--login-ink); font: 14px/1.45 'Inter', sans-serif; padding: 24px 40px; }
-.login-header { max-width: 1328px; margin: 0 auto 32px; }
+.login-header { position: sticky; top: 0; z-index: 1000; max-width: 1328px; margin: 0 auto 32px; padding-block: 12px; background: var(--login-surface); }
 .login-main { max-width: 1348px; margin: auto; }
 .login-card { display: grid; grid-template-columns: 5fr 7fr; max-width: 1180px; min-height: 933px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 20px 25px -5px #0000001a, 0 8px 10px -6px #0000001a; }
 .login-editorial { position: relative; min-width: 0; }

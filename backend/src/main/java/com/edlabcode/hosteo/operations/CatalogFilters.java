@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 
 public record CatalogFilters(
         @Size(max = 100) String district,
+        @Size(max = 100) String query,
         PropertyType type,
         @Min(1) @Max(2147483647) Integer guests,
         @DecimalMin("0") @DecimalMax("9999999999.99") @Digits(integer = 10, fraction = 2) BigDecimal minPrice,

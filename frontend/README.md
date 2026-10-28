@@ -251,7 +251,7 @@ Verificación: lint/build:local aprobados y navegador con las tres propiedades r
 
 ### HU-15: filtros del catálogo y carga de sesión
 
-El catálogo permite combinar distrito (coincidencia exacta sin distinguir mayúsculas), tipo, capacidad mínima de huéspedes, moneda y precios mínimo/máximo por noche. Los criterios se guardan en la URL, se aplican en el servidor antes de paginar y se conservan al cambiar de página. Buscar o limpiar reinicia la paginación. Para filtrar por precio se exige seleccionar PEN o USD; no se convierten monedas. Los rangos de fechas se siguen consultando desde el detalle de disponibilidad.
+El catálogo permite combinar búsqueda por texto (`query`, nombre y descripción sin distinguir mayúsculas), tipo, capacidad mínima de huéspedes, moneda y precios mínimo/máximo por noche. La presentación indica «Estadías global» y no ofrece filtros por región; parámetros regionales antiguos de la URL no se envían al backend. Los criterios se guardan en la URL, se aplican en el servidor antes de paginar y se conservan al cambiar de página. Buscar o limpiar reinicia la paginación. Para filtrar por precio se exige seleccionar PEN o USD; no se convierten monedas. Los rangos de fechas se siguen consultando desde el detalle de disponibilidad.
 
 La verificación inicial de sesión presenta un shimmer adaptable, con estado accesible y animación desactivada con `prefers-reduced-motion`. Se conserva el logo existente.
 

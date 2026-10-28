@@ -49,6 +49,12 @@ class OperationsIntegrationTests {
   assertEquals(0,ok(call("GET",filter.replace("APARTMENT","HOUSE"),null,null,null)).get("total").asInt());
   assertEquals(0,ok(call("GET",filter.replace("mIrAfLoReS","Barranco"),null,null,null)).get("total").asInt());
   assertEquals(1,ok(call("GET",filter.replace("PEN","USD"),null,null,null)).get("total").asInt());
+  assertEquals(12,ok(call("GET",filter+"&query=%20rEaL%20",null,null,null)).get("total").asInt());
+  assertEquals(12,ok(call("GET",filter+"&query=description",null,null,null)).get("total").asInt());
+  assertEquals(0,ok(call("GET",filter+"&query=missing",null,null,null)).get("total").asInt());
+  assertEquals(0,ok(call("GET",filter+"&query=%25",null,null,null)).get("total").asInt());
+  assertEquals(0,ok(call("GET",filter+"&query=_",null,null,null)).get("total").asInt());
+  assertEquals(400,call("GET","/catalog/properties?query="+"a".repeat(101),null,null,null).statusCode());
   for(String invalid:List.of("minPrice=1", "currency=PEN&minPrice=200&maxPrice=100", "guests=0", "currency=EUR", "type=UNKNOWN", "currency=PEN&maxPrice=-1", "currency=PEN&minPrice=1.001"))
    assertEquals(400,call("GET","/catalog/properties?"+invalid,null,null,null).statusCode(),invalid);
  }

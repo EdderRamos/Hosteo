@@ -110,6 +110,13 @@ public class OperationsService {
         org.springframework.data.jpa.domain.Specification<Property> specification = (root, query, cb) -> {
             var predicates = new ArrayList<jakarta.persistence.criteria.Predicate>();
             predicates.add(cb.equal(root.get("status"), PropertyStatus.PUBLISHED));
+            if (filters.query() != null && !filters.query().isBlank()) {
+                String text = filters.query().trim().toLowerCase(Locale.ROOT)
+                        .replace("!", "!!").replace("%", "!%").replace("_", "!_");
+                String pattern = "%" + text + "%";
+                predicates.add(cb.or(cb.like(cb.lower(root.get("title")), pattern, '!'),
+                        cb.like(cb.lower(root.get("description")), pattern, '!')));
+            }
             if (filters.district() != null && !filters.district().isBlank())
                 predicates.add(cb.equal(cb.lower(cb.trim(root.get("district"))), filters.district().trim().toLowerCase(Locale.ROOT)));
             if (filters.type() != null) predicates.add(cb.equal(root.get("type"), filters.type()));

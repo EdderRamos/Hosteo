@@ -252,6 +252,8 @@ Validación focalizada: una prueba de integración H2 para búsqueda, pago ausen
 
 ### HU-15: filtros de propiedades publicadas
 
-`GET /api/v1/catalog/properties` acepta `district`, `type` (APARTMENT/HOUSE/ROOM), `guests` (capacidad mínima), `currency` (PEN/USD), `minPrice`, `maxPrice` y `page`. Todos los criterios se combinan antes del conteo y la paginación de 10 elementos; únicamente se devuelven propiedades PUBLISHED. Distrito compara texto completo ignorando espacios extremos y mayúsculas. Los límites de precio son inclusivos, admiten hasta dos decimales y requieren moneda. Los parámetros inválidos y rangos invertidos devuelven 400. No requiere migración de base de datos.
+`GET /api/v1/catalog/properties` acepta `query` (texto de hasta 100 caracteres sobre título o descripción), `district` (compatibilidad con clientes anteriores), `type` (APARTMENT/HOUSE/ROOM), `guests` (capacidad mínima), `currency` (PEN/USD), `minPrice`, `maxPrice` y `page`. Todos los criterios se combinan antes del conteo y la paginación de 10 elementos; únicamente se devuelven propiedades PUBLISHED. Distrito compara texto completo ignorando espacios extremos y mayúsculas. Los límites de precio son inclusivos, admiten hasta dos decimales y requieren moneda. Los parámetros inválidos y rangos invertidos devuelven 400. No requiere migración de base de datos.
 
 Validación esencial: `OperationsIntegrationTests#catalogFiltersCombineBeforePaginationAndOnlyExposePublishedProperties`, con H2 aislada, comprueba filtros combinados, paginación, monedas, exclusión de borradores y parámetros inválidos.
+
+La búsqueda `query` ignora mayúsculas y espacios extremos, trata `%` y `_` como texto literal y se combina con los otros criterios antes de paginar. La interfaz guest vigente no envía filtros regionales.
