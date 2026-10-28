@@ -3,6 +3,7 @@ import { RouterProvider } from 'react-router'
 import { useEffect, useState } from 'react'
 import { restoreSession } from './features/auth/session'
 import { router } from './routes'
+import { SessionShimmer } from './shared/ui/SessionShimmer'
 
 function App() {
   const [ready, setReady] = useState(false)
@@ -20,7 +21,7 @@ function App() {
       window.removeEventListener('storage', checkSession)
     }
   }, [])
-  if (!ready) return <main role="status">Verificando sesión…</main>
+  if (!ready) return <SessionShimmer />
   return <QueryProvider><RouterProvider router={router} /></QueryProvider>
 }
 

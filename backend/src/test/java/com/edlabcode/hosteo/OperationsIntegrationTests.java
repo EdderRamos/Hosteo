@@ -38,6 +38,20 @@ class OperationsIntegrationTests {
  JsonNode ok(HttpResponse<String> r){assertEquals(200,r.statusCode(),r.body());return mapper.readTree(r.body());}
  Map<String,Object> stay(Property p,LocalDate in,LocalDate out){return Map.of("propertyId",p.getId(),"propertyVersion",p.getVersion(),"checkIn",in.toString(),"checkOut",out.toString(),"guestCount",2);}
  String availablePath(Property p,LocalDate in,LocalDate out){return "/guest/properties/"+p.getId()+"/availability?checkIn="+in+"&checkOut="+out+"&guestCount=2";}
+ @Test void catalogFiltersCombineBeforePaginationAndOnlyExposePublishedProperties() throws Exception {
+  var draft=property(host);draft.setStatus(PropertyStatus.DRAFT);properties.saveAndFlush(draft);
+  var dollars=property(host);dollars.setCurrency("USD");properties.saveAndFlush(dollars);
+  for(int i=0;i<11;i++) property(host);
+  String filter="/catalog/properties?district=%20mIrAfLoReS%20&type=APARTMENT&guests=4&currency=PEN&minPrice=100&maxPrice=100";
+  var first=ok(call("GET",filter,null,null,null));assertEquals(12,first.get("total").asInt());assertEquals(10,first.get("items").size());
+  var second=ok(call("GET",filter+"&page=1",null,null,null));assertEquals(2,second.get("items").size());
+  assertEquals(0,ok(call("GET",filter.replace("guests=4","guests=5"),null,null,null)).get("total").asInt());
+  assertEquals(0,ok(call("GET",filter.replace("APARTMENT","HOUSE"),null,null,null)).get("total").asInt());
+  assertEquals(0,ok(call("GET",filter.replace("mIrAfLoReS","Barranco"),null,null,null)).get("total").asInt());
+  assertEquals(1,ok(call("GET",filter.replace("PEN","USD"),null,null,null)).get("total").asInt());
+  for(String invalid:List.of("minPrice=1", "currency=PEN&minPrice=200&maxPrice=100", "guests=0", "currency=EUR", "type=UNKNOWN", "currency=PEN&maxPrice=-1", "currency=PEN&minPrice=1.001"))
+   assertEquals(400,call("GET","/catalog/properties?"+invalid,null,null,null).statusCode(),invalid);
+ }
  @Test void essentialBookingPaymentAndManagementJourney()throws Exception{
   assertEquals(1,ok(call("GET","/catalog/properties",null,null,null)).get("total").asInt());
   var block=ok(call("POST","/host/properties/"+property.getId()+"/blocks",Map.of("startDate",start.toString(),"endDate",end.toString(),"reason","Maintenance"),host,null));

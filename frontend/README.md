@@ -242,3 +242,17 @@ HU-38 corrige el cliente HTTP compartido: diferencia credenciales incorrectas de
 HU-39 ajusta detalles a una columna en pantallas estrechas, controla ancho de campos y textos largos, mantiene navegación flexible y ofrece tarjetas en los listados operativos. Se reutiliza el diseño establecido. Las pantallas de soporte se verificaron a 375, 430, 768, 1024, 1280 y 1440 px con nombres/correos/referencias largos, sin desbordamientos. Esto documenta las pantallas y resoluciones revisadas; no equivale a una certificación de todas las combinaciones de navegador/dispositivo.
 
 Validación limitada: tres pruebas frontend focalizadas y una de integración backend, lint y build:local. Revisión de navegador con HTTP simulado para búsqueda/detalle, pago ausente/aprobado, resumen, actualización y página no encontrada. No se ejecutó toda la suite anterior y no requiere migración de base de datos.
+
+## Ajuste visual del catálogo guest
+
+La pantalla `/guest` conserva logo, API y enlaces de disponibilidad/reservas. Mejora jerarquía tipográfica, espaciados, tarjetas, estados de carga/vacío/error y adaptación móvil siguiendo la referencia aportada. No añade filtros ni servicios. Las propiedades sin fotos muestran ilustraciones SVG identificadas como referenciales, sin atribuirles fotos ajenas. Experiencia y Para Propietarios abren el modal existente de sección todavía no disponible, con Escape, cierre y retorno al contenido.
+
+Verificación: lint/build:local aprobados y navegador con las tres propiedades reales en 375, 430, 768, 1024, 1280 y 1440 px; sin desbordamientos ni errores JavaScript. Ambos accesos del menú abren y cierran el modal correctamente. No se modifican datos ni backend.
+
+### HU-15: filtros del catálogo y carga de sesión
+
+El catálogo permite combinar distrito (coincidencia exacta sin distinguir mayúsculas), tipo, capacidad mínima de huéspedes, moneda y precios mínimo/máximo por noche. Los criterios se guardan en la URL, se aplican en el servidor antes de paginar y se conservan al cambiar de página. Buscar o limpiar reinicia la paginación. Para filtrar por precio se exige seleccionar PEN o USD; no se convierten monedas. Los rangos de fechas se siguen consultando desde el detalle de disponibilidad.
+
+La verificación inicial de sesión presenta un shimmer adaptable, con estado accesible y animación desactivada con `prefers-reduced-motion`. Se conserva el logo existente.
+
+Verificado con tres pruebas de catálogo, compilación local, lint y revisión visual a 375, 768 y 1440 px. Los filtros y su limpieza se comprobaron contra el backend local; la carga de sesión se revisó con una respuesta demorada simulada.

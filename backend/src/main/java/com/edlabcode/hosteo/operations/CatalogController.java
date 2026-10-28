@@ -1,5 +1,6 @@
 package com.edlabcode.hosteo.operations;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
@@ -20,8 +21,8 @@ public class CatalogController {
     private final OperationsService operations;
 
     @GetMapping
-    public ResponseEntity<PageResult<PublicProperty>> list(@RequestParam(defaultValue = "0") @Min(0) @Max(100000) int page) {
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(operations.catalog(page));
+    public ResponseEntity<PageResult<PublicProperty>> list(@RequestParam(defaultValue = "0") @Min(0) @Max(100000) int page, @Valid @ModelAttribute CatalogFilters filters) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(operations.catalog(page, filters));
     }
 
     @GetMapping("/{id}")

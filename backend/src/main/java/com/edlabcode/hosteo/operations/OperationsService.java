@@ -102,8 +102,24 @@ public class OperationsService {
     }
 
     @PreAuthorize("permitAll()")
-    public PageResult<PublicProperty> catalog(int page) {
-        return result(properties.findAllByStatus(PropertyStatus.PUBLISHED, page(page)), PublicProperty::from);
+    public PageResult<PublicProperty> catalog(int page, CatalogFilters filters) {
+        if ((filters.minPrice() != null || filters.maxPrice() != null) && filters.currency() == null)
+            throw fail(HttpStatus.BAD_REQUEST, "Select a currency when filtering by price");
+        if (filters.minPrice() != null && filters.maxPrice() != null && filters.minPrice().compareTo(filters.maxPrice()) > 0)
+            throw fail(HttpStatus.BAD_REQUEST, "Minimum price must not exceed maximum price");
+        org.springframework.data.jpa.domain.Specification<Property> specification = (root, query, cb) -> {
+            var predicates = new ArrayList<jakarta.persistence.criteria.Predicate>();
+            predicates.add(cb.equal(root.get("status"), PropertyStatus.PUBLISHED));
+            if (filters.district() != null && !filters.district().isBlank())
+                predicates.add(cb.equal(cb.lower(cb.trim(root.get("district"))), filters.district().trim().toLowerCase(Locale.ROOT)));
+            if (filters.type() != null) predicates.add(cb.equal(root.get("type"), filters.type()));
+            if (filters.guests() != null) predicates.add(cb.ge(root.get("capacity"), filters.guests()));
+            if (filters.currency() != null) predicates.add(cb.equal(root.get("currency"), filters.currency()));
+            if (filters.minPrice() != null) predicates.add(cb.ge(root.get("nightlyRate"), filters.minPrice()));
+            if (filters.maxPrice() != null) predicates.add(cb.le(root.get("nightlyRate"), filters.maxPrice()));
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+        return result(properties.findAll(specification, page(page)), PublicProperty::from);
     }
 
     @PreAuthorize("permitAll()")

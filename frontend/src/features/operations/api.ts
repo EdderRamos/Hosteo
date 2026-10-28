@@ -45,7 +45,12 @@ async function call<T>(path: string, token: string | undefined, schema: z.ZodTyp
   }
 }
 const json = (method: string, body: unknown): RequestInit => ({ method, body: JSON.stringify(body) })
-export const catalog = (pageNumber: number, signal?: AbortSignal) => call(`/catalog/properties?page=${pageNumber}`, undefined, page(publicPropertySchema), { signal })
+export const catalogFilterKeys = ['district', 'type', 'guests', 'currency', 'minPrice', 'maxPrice'] as const
+export const catalog = (pageNumber: number, signal?: AbortSignal, filters = new URLSearchParams()) => {
+  const query = new URLSearchParams({ page: String(pageNumber) })
+  for (const key of catalogFilterKeys) { const value = filters.get(key); if (value) query.set(key, value) }
+  return call(`/catalog/properties?${query}`, undefined, page(publicPropertySchema), { signal })
+}
 export const property = (propertyId: string, signal?: AbortSignal) => call(`/catalog/properties/${encodeURIComponent(propertyId)}`, undefined, publicPropertySchema, { signal })
 export const availability = (token: string, propertyId: number, input: z.infer<typeof staySchema>) => call(`/guest/properties/${propertyId}/availability?${new URLSearchParams({ checkIn: input.checkIn, checkOut: input.checkOut, guestCount: String(input.guestCount) })}`, token, availabilitySchema)
 export const reserve = (token: string, quote: Quote, key: string) => call('/guest/bookings', token, bookingSchema, { ...json('POST', { propertyId: quote.propertyId, propertyVersion: quote.propertyVersion, checkIn: quote.checkIn, checkOut: quote.checkOut, guestCount: quote.guestCount }), headers: { 'Idempotency-Key': key } })

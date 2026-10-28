@@ -249,3 +249,9 @@ HU-38 añade respuestas estructuradas para parámetros obligatorios faltantes, c
 HU-39 se implementa en la interfaz con contenedores fluidos, adaptación de detalles, filtros y navegación. No requiere cambios de esquema ni migraciones.
 
 Validación focalizada: una prueba de integración H2 para búsqueda, pago ausente/aprobado, resumen, estados HTTP y prohibición de escritura; tres pruebas frontend para navegación de soporte, recuperación de consulta y mensajes compartidos. Lint/build local aprobados. Navegador con respuestas simuladas en 375, 430, 768, 1024, 1280 y 1440 px: detalle/resumen, pago ausente/aprobado, actualización y 404, sin desbordamientos ni errores JavaScript. No se ejecutó la suite completa ni se modificaron datos reales para probar estas historias.
+
+### HU-15: filtros de propiedades publicadas
+
+`GET /api/v1/catalog/properties` acepta `district`, `type` (APARTMENT/HOUSE/ROOM), `guests` (capacidad mínima), `currency` (PEN/USD), `minPrice`, `maxPrice` y `page`. Todos los criterios se combinan antes del conteo y la paginación de 10 elementos; únicamente se devuelven propiedades PUBLISHED. Distrito compara texto completo ignorando espacios extremos y mayúsculas. Los límites de precio son inclusivos, admiten hasta dos decimales y requieren moneda. Los parámetros inválidos y rangos invertidos devuelven 400. No requiere migración de base de datos.
+
+Validación esencial: `OperationsIntegrationTests#catalogFiltersCombineBeforePaginationAndOnlyExposePublishedProperties`, con H2 aislada, comprueba filtros combinados, paginación, monedas, exclusión de borradores y parámetros inválidos.

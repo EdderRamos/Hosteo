@@ -14,7 +14,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface PropertyRepository extends JpaRepository<Property, Long> {
+public interface PropertyRepository extends JpaRepository<Property, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Property> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Property p where p.id = :id and p.host.id = :hostId")
     Optional<Property> findLockedOwned(@Param("id") Long id, @Param("hostId") Long hostId);
