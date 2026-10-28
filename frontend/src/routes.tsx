@@ -1,3 +1,4 @@
+import { RouteErrorPage } from './pages/RouteErrorPage'
 import { createBrowserRouter } from 'react-router'
 import { ForgotPage } from './pages/AuthPages'
 import { RegisterPage } from './pages/RegisterPage'
@@ -8,6 +9,9 @@ import { StaffHomePage } from './pages/StaffHomePage'
 import { HostHomePage } from './pages/HostHomePage'
 
 export const router = createBrowserRouter([
+  { path: '/support/bookings', lazy: async () => ({ Component: (await import('./pages/SupportOperationsPages')).SupportBookingsPage }) },
+  { path: '/support/bookings/:id', lazy: async () => ({ Component: (await import('./pages/SupportOperationsPages')).SupportBookingPage }) },
+  { path: '/support/operations', lazy: async () => ({ Component: (await import('./pages/SupportOperationsPages')).SupportOperationalPage }) },
   { path: '/hosteo/reports/bookings', lazy: async () => ({ Component: (await import('./pages/OperationsPages')).AdminReportsPage }) },
   { path: '/support/users', lazy: async () => ({ Component: (await import('./pages/SupportPages')).SupportUsersPage }) },
   { path: '/support/users/:id', lazy: async () => ({ Component: (await import('./pages/SupportPages')).SupportUserPage }) },
@@ -36,7 +40,8 @@ export const router = createBrowserRouter([
   { path: '/host/properties/new', lazy: async () => ({ Component: (await import('./pages/HostPropertyPages')).RegisterPropertyPage }) },
   { path: '/host/properties/:id/edit', lazy: async () => ({ Component: (await import('./pages/HostPropertyPages')).EditPropertyPage }) },
   { path: '/host/properties/:id', lazy: async () => ({ Component: (await import('./pages/HostPropertyPages')).PropertyConfirmationPage }) },
+  { path: '*', Component: RouteErrorPage },
   { path: '/login', Component: LoginPage },
   { path: '/register', Component: RegisterPage },
   { path: '/forgot-password', Component: ForgotPage },
-])
+].map(route => ({ ...route, ErrorBoundary: RouteErrorPage })))

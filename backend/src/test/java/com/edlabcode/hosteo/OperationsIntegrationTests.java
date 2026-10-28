@@ -122,4 +122,25 @@ class OperationsIntegrationTests {
   assertEquals(403,call("PUT","/host/properties/"+property.getId(),Map.of(),support,null).statusCode());
   assertEquals(2,bookings.count());assertEquals(2,properties.count());
  }
+
+ @Test void supportReservationsPaymentsAndOperationalSummaryRemainReadOnly()throws Exception{
+  var reservation=ok(call("POST","/guest/bookings",stay(property,start,end),guest,UUID.randomUUID().toString()));long id=reservation.get("id").asLong();
+  String path="/support/bookings/"+id;
+  assertEquals(id,ok(call("GET",path,null,support,null)).get("id").asLong());
+  var unpaid=call("GET",path+"/payment",null,support,null);assertEquals(200,unpaid.statusCode());assertTrue(mapper.readTree(unpaid.body()).get("payment").isNull());
+  assertEquals(1,ok(call("GET","/support/bookings?id="+id+"&email=GUEST",null,support,null)).get("total").asInt());
+  assertEquals(1,ok(call("GET","/support/bookings?confirmationCode="+reservation.get("confirmationCode").asText(),null,support,null)).get("total").asInt());
+  assertEquals(0,ok(call("GET","/support/bookings?email=unknown",null,support,null)).get("total").asInt());
+  ok(call("POST","/guest/bookings/"+id+"/payment",Map.of("version",0),guest,null));
+  var payment=ok(call("GET",path+"/payment",null,support,null)).get("payment");assertEquals("APPROVED",payment.get("status").asText());assertEquals(200,payment.get("amount").asInt());
+  var operational=ok(call("GET","/support/operations/summary",null,support,null));assertEquals(1,operational.get("properties").asInt());assertEquals(1,operational.get("bookings").asInt());assertFalse(operational.has("paidAmountByCurrency"));assertNotNull(operational.get("generatedAt"));
+  for(User denied:new User[]{host,guest,admin}){assertEquals(403,call("GET",path,null,denied,null).statusCode());assertEquals(403,call("GET","/support/operations/summary",null,denied,null).statusCode());}
+  assertEquals(403,call("PATCH","/admin/bookings/"+id+"/status",Map.of("version",0,"status","CANCELLED","comment","Not allowed"),support,null).statusCode());
+  assertEquals(403,call("POST","/guest/bookings/"+id+"/payment",Map.of("version",0),support,null).statusCode());
+  assertEquals(404,call("GET","/support/bookings/999999/payment",null,support,null).statusCode());
+  var invalid=call("GET","/support/bookings?id=abc",null,support,null);assertEquals(400,invalid.statusCode());assertEquals("VALIDATION_ERROR",mapper.readTree(invalid.body()).get("code").asText());
+  assertEquals(400,call("GET","/support/bookings?confirmationCode=invalid",null,support,null).statusCode());
+  assertEquals(400,call("GET","/support/bookings?page=-1",null,support,null).statusCode());
+  assertEquals(1,bookings.count());assertEquals(1,payments.count());
+ }
 }

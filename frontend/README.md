@@ -230,3 +230,15 @@ HU-33/HU-34 agregan `/support/users`, `/support/users/:id` y `/support/users/:id
 Se conservan diseño, cabecera y navegación existentes. No se aportaron nuevos frames específicos; la adaptación móvil mantiene los patrones del portal. No requiere cambios de esquema.
 
 Validación imprescindible: tres pruebas frontend focalizadas (reporte/CSV, búsqueda→usuario→propiedad y guard de soporte), lint y build:local; una prueba backend H2 del alcance. Navegador con respuestas simuladas a 375 y 1440 px: reporte y descarga, búsqueda y detalle de soporte sin desbordamientos ni errores JavaScript. No se ejecutó la suite completa.
+
+## HU-35 a HU-39: soporte operativo, mensajes y adaptación responsive
+
+HU-35 añade `/support/bookings` con filtros combinados de ID, UUID de confirmación y email parcial del huésped, paginación y actualización. Los filtros y la página permanecen en la URL; IDs/códigos inválidos muestran un mensaje antes de consultar. `/support/bookings/:id` muestra fechas, importe histórico, confirmación, estado, identidades y enlace a la propiedad asociada. HU-36 consulta el pago por un endpoint propio: carga, error con reintento, pago no registrado o estado/importe/referencia/fecha del pago simulado. No muestra controles para registrar pagos ni cambiar estados.
+
+HU-37 añade `/support/operations` con totales y distribuciones de propiedades/reservas, próximas llegadas y bloqueos activos, más fecha de consulta y definición de cada contador. Es una consulta operativa, sin indicadores de importes administrativos. Los accesos se encuentran en la navegación y home de soporte. Todos los flujos requieren SUPPORT y eliminan la sesión ante un 401.
+
+HU-38 corrige el cliente HTTP compartido: diferencia credenciales incorrectas de sesión expirada, evita mensajes de cuenta duplicada para conflictos generales, orienta ante 404, timeout, falta de permisos, validaciones y servicio temporalmente indisponible. Mantiene errores por campo y mensajes de dominio de los flujos existentes. Una página de recuperación común cubre errores de render/carga de rutas y URLs inexistentes, con recarga e inicio, sin mostrar trazas internas.
+
+HU-39 ajusta detalles a una columna en pantallas estrechas, controla ancho de campos y textos largos, mantiene navegación flexible y ofrece tarjetas en los listados operativos. Se reutiliza el diseño establecido. Las pantallas de soporte se verificaron a 375, 430, 768, 1024, 1280 y 1440 px con nombres/correos/referencias largos, sin desbordamientos. Esto documenta las pantallas y resoluciones revisadas; no equivale a una certificación de todas las combinaciones de navegador/dispositivo.
+
+Validación limitada: tres pruebas frontend focalizadas y una de integración backend, lint y build:local. Revisión de navegador con HTTP simulado para búsqueda/detalle, pago ausente/aprobado, resumen, actualización y página no encontrada. No se ejecutó toda la suite anterior y no requiere migración de base de datos.

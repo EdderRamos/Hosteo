@@ -232,3 +232,20 @@ HU-33/HU-34 añaden un namespace exclusivo SUPPORT de solo lectura:
 La asociación se consulta por host_id persistido, incluso si después cambió el rol del propietario. Una cuenta sin propiedades devuelve un listado vacío. Cuenta o asociación inexistente devuelve 404. No se incorporan permisos de edición, validación, pagos o reservas para soporte. La búsqueda existente del portal sigue disponible para ADMINISTRATOR/SUPPORT y añade protección explícita en su servicio. Todas las respuestas usan no-store. No requiere migración de datos.
 
 Validación focalizada: una prueba de integración H2 para indicadores, filtros, CSV, permisos y asociación usuario/propiedad; tres pruebas frontend para filtros/descarga, atención de soporte y guard administrativo. Lint y build local aprobados; revisión de navegador con HTTP simulado en móvil/escritorio. No se hicieron modificaciones de prueba en PostgreSQL ni se ejecutó toda la suite previa.
+
+## HU-35 a HU-39: atención operativa y errores transversales
+
+| Método y ruta | Permiso y resultado |
+| --- | --- |
+| GET `/api/v1/support/bookings?id=&confirmationCode=&email=&page=0` | Solo SUPPORT; filtros combinables por ID exacto, UUID de confirmación y email parcial del huésped sin distinguir mayúsculas |
+| GET `/api/v1/support/bookings/{id}` | Reserva con fechas, estado, importes históricos, identidad de huésped/anfitrión y pago asociado |
+| GET `/api/v1/support/bookings/{id}/payment` | `{payment: PaymentView}` o `{payment:null}` si existe la reserva pero no tiene pago; 404 si no existe la reserva |
+| GET `/api/v1/support/operations/summary` | Instantánea operativa: fecha de Lima, fecha de consulta, propiedades/reservas por estado, próximas llegadas y bloqueos activos; sin indicadores financieros |
+
+HU-35/HU-36 son exclusivamente de consulta: no se amplían servicios de escritura ni permisos de HOST/GUEST/ADMINISTRATOR a soporte. La búsqueda pagina diez registros por creación/ID descendente; email hasta 100 caracteres y página entre 0 y 100000. UUID/ID/parámetros inválidos devuelven 400; otros roles 403 y sesiones inválidas/inactivas 401. La consulta de pago distingue un pago ausente de un error de consulta. Los estados siguen PENDING/APPROVED/REJECTED del contrato de pagos; el registro actual de demostración genera APPROVED, sin datos bancarios. Los agregados se calculan con REPEATABLE_READ y no-store; no se guardan datos al consultar.
+
+HU-38 añade respuestas estructuradas para parámetros obligatorios faltantes, conflictos de integridad, indisponibilidad de datos, acceso denegado, sesión inválida, recursos no encontrados, método no permitido y errores inesperados. Los errores no controlados muestran un mensaje genérico al cliente y se registran solo en el servidor, sin devolver trazas ni SQL. Se conserva ApiError con timestamp/status/code/message/fieldErrors. La interfaz usa códigos y mensajes conocidos en español, sin mostrar texto arbitrario de una excepción del servidor.
+
+HU-39 se implementa en la interfaz con contenedores fluidos, adaptación de detalles, filtros y navegación. No requiere cambios de esquema ni migraciones.
+
+Validación focalizada: una prueba de integración H2 para búsqueda, pago ausente/aprobado, resumen, estados HTTP y prohibición de escritura; tres pruebas frontend para navegación de soporte, recuperación de consulta y mensajes compartidos. Lint/build local aprobados. Navegador con respuestas simuladas en 375, 430, 768, 1024, 1280 y 1440 px: detalle/resumen, pago ausente/aprobado, actualización y 404, sin desbordamientos ni errores JavaScript. No se ejecutó la suite completa ni se modificaron datos reales para probar estas historias.

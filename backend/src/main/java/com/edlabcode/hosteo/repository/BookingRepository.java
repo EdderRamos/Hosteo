@@ -45,4 +45,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("select b.currency,sum(b.totalAmount) from Booking b where b.checkIn>=:start and b.checkIn<=:end and (:status is null or b.status=:status) and b.status<>com.edlabcode.hosteo.entity.BookingStatus.CANCELLED group by b.currency")
     List<Object[]> reportAmounts(@Param("start") LocalDate start, @Param("end") LocalDate end, @Param("status") BookingStatus status);
+
+    @EntityGraph(attributePaths={"property","property.host","guest"})
+    @Query("select b from Booking b where (:id is null or b.id=:id) and (:code is null or b.confirmationCode=:code) and (:email='' or lower(b.guest.email) like lower(concat('%',:email,'%')))")
+    Page<Booking> supportSearch(@Param("id") Long id,@Param("code") UUID code,@Param("email") String email,Pageable page);
 }
