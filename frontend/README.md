@@ -218,3 +218,15 @@ Para compilar localmente contra Railway:
 ```bash
 VITE_API_URL=https://hosteo-production.up.railway.app/api/v1 npm run build
 ```
+
+## HU-31 a HU-34: indicadores, reportes y soporte
+
+HU-31 reutiliza `/hosteo/operations` con totales globales y estados de propiedades/reservas, definición de próximas llegadas y acceso directo al reporte. El servidor calcula indicadores en una instantánea consistente y separa importes por moneda. La búsqueda de cuentas existente de HU-33 se completa con el recorrido específico de soporte.
+
+HU-32 agrega `/hosteo/reports/bookings` para ADMINISTRATOR: rango de **fechas de llegada** con extremos incluidos, estado opcional, resumen, lista paginada y CSV de todas las coincidencias. Los filtros se guardan en la URL para recargar/compartir y al generar se vuelve a la primera página. Se muestran carga, vacío, errores, reintento y actualización. El archivo se solicita con bearer token y sus filtros vigentes, sin persistir datos sensibles en el navegador. Máximo 366 días y 10 000 reservas por exportación. Las reservas canceladas figuran en el reporte pero se excluyen de los importes no cancelados.
+
+HU-33/HU-34 agregan `/support/users`, `/support/users/:id` y `/support/users/:id/properties/:propertyId`, exclusivas de SUPPORT. Permiten buscar por nombre/apellido/email, abrir identidad/rol/estado de una cuenta y consultar sus propiedades, incluso borradores o rechazadas, con detalle de ubicación, capacidad, tarifa y comentario de validación. No hay acciones de edición ni aprobación. Usuarios o propiedades inexistentes/asociaciones inválidas muestran error; una cuenta sin propiedades muestra vacío. Las consultas paginan diez registros, permiten actualizar y cierran sesión ante un 401. La navegación del portal y su tarjeta de soporte enlazan el recorrido.
+
+Se conservan diseño, cabecera y navegación existentes. No se aportaron nuevos frames específicos; la adaptación móvil mantiene los patrones del portal. No requiere cambios de esquema.
+
+Validación imprescindible: tres pruebas frontend focalizadas (reporte/CSV, búsqueda→usuario→propiedad y guard de soporte), lint y build:local; una prueba backend H2 del alcance. Navegador con respuestas simuladas a 375 y 1440 px: reporte y descarga, búsqueda y detalle de soporte sin desbordamientos ni errores JavaScript. No se ejecutó la suite completa.

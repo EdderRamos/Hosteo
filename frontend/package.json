@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:local": "tsc -b && vite build --mode development"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.1",

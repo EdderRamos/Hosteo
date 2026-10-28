@@ -1,6 +1,7 @@
 package com.edlabcode.hosteo.repository;
 
 import com.edlabcode.hosteo.entity.Booking;
+import com.edlabcode.hosteo.entity.BookingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -34,4 +35,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("select count(b) from Booking b where b.status=com.edlabcode.hosteo.entity.BookingStatus.CONFIRMED and b.checkIn>=:today and (:host is null or b.property.host.id=:host)")
     long upcoming(@Param("host") Long host, @Param("today") LocalDate today);
+
+    @EntityGraph(attributePaths = {"property", "property.host", "guest"})
+    @Query("select b from Booking b where b.checkIn>=:start and b.checkIn<=:end and (:status is null or b.status=:status)")
+    Page<Booking> report(@Param("start") LocalDate start, @Param("end") LocalDate end, @Param("status") BookingStatus status, Pageable page);
+
+    @Query("select b.status,count(b) from Booking b where b.checkIn>=:start and b.checkIn<=:end and (:status is null or b.status=:status) group by b.status")
+    List<Object[]> reportStatuses(@Param("start") LocalDate start, @Param("end") LocalDate end, @Param("status") BookingStatus status);
+
+    @Query("select b.currency,sum(b.totalAmount) from Booking b where b.checkIn>=:start and b.checkIn<=:end and (:status is null or b.status=:status) and b.status<>com.edlabcode.hosteo.entity.BookingStatus.CANCELLED group by b.currency")
+    List<Object[]> reportAmounts(@Param("start") LocalDate start, @Param("end") LocalDate end, @Param("status") BookingStatus status);
 }

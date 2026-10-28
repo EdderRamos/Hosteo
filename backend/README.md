@@ -211,3 +211,24 @@ El seguimiento permite CONFIRMED → IN_PROGRESS → COMPLETED; CONFIRMED/IN_PRO
 El pago es exclusivamente simulado, por el total histórico y moneda de la reserva, con referencia UUID y estado APPROVED inmediato. Se permite en CONFIRMED/IN_PROGRESS. Solo existe un pago por reserva; repetir la solicitud devuelve el registro existente. Cancelar después conserva ese pago y no procesa reembolsos ni datos bancarios. Los agregados distinguen volúmenes reservados no cancelados y pagos aprobados, sin sumar monedas distintas. Próximas llegadas cuenta CONFIRMED con check_in desde hoy; bloqueos activos cuenta el flag activo, incluidos registros históricos aún no desactivados.
 
 Validación imprescindible solicitada: solo `OperationsIntegrationTests` (3 pruebas H2) para recorrido completo, permisos/fechas/precio/estados y concurrencia con fechas adyacentes. No se ejecutó la suite completa previa. El navegador utiliza respuestas simuladas; la migración y la publicación local de los endpoints se verificaron por separado.
+
+## HU-31 a HU-34: indicadores, reportes y atención de soporte
+
+HU-31 conserva `GET /api/v1/admin/operations/summary` y la autorización administrativa. Los totales y agrupaciones se leen ahora en una transacción REPEATABLE_READ para que sus consultas compartan una instantánea. Incluye propiedades/reservas por estado, próximas llegadas confirmadas desde hoy en Lima, bloqueos activos e importes por moneda. El anfitrión conserva el resumen propio de HU-30, sin acceder al resumen administrativo.
+
+HU-32 incorpora `GET /api/v1/admin/reports/bookings?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&status=CONFIRMED&page=0`. Fechas obligatorias, filtro de estado opcional, extremos incluidos y hasta 366 días naturales. El criterio es **fecha de llegada**, no fecha de creación ni estadías que simplemente crucen el periodo. Devuelve filtros, generatedAt, records `{items,total,page,pages}`, conteos por estado e importes de reservas no canceladas separados por moneda. Diez registros por página, orden por llegada e ID ascendentes. Datos históricos de importe/moneda provienen de la reserva; título y nombres corresponden a los registros relacionados actuales.
+
+`GET /api/v1/admin/reports/bookings/export` usa los mismos filtros y descarga todas las coincidencias en CSV UTF-8 con BOM y encabezados ingleses. Hasta 10 000 reservas, leídas en lotes de 500 dentro de una instantánea; si supera el límite devuelve 400 solicitando reducir filtros. Escapa comillas y neutraliza valores que puedan interpretarse como fórmulas. No guarda archivos de reportes ni modifica reservas. Ambos endpoints son exclusivos de ADMINISTRATOR y usan no-store. Fechas/estado/página inválidos devuelven 400.
+
+HU-33/HU-34 añaden un namespace exclusivo SUPPORT de solo lectura:
+
+| Método y ruta | Resultado |
+| --- | --- |
+| GET `/api/v1/support/users?query=&page=0` | Búsqueda parcial, sin distinguir mayúsculas, por email/nombre/apellido, hasta 100 caracteres y diez cuentas por página |
+| GET `/api/v1/support/users/{id}` | Identidad básica, rol y estado de la cuenta, sin contraseñas ni datos internos de sesión |
+| GET `/api/v1/support/users/{id}/properties?page=0` | Propiedades registradas por esa cuenta, con todos sus estados |
+| GET `/api/v1/support/users/{id}/properties/{propertyId}` | Información principal y estado de la propiedad, comprobando la asociación con el usuario |
+
+La asociación se consulta por host_id persistido, incluso si después cambió el rol del propietario. Una cuenta sin propiedades devuelve un listado vacío. Cuenta o asociación inexistente devuelve 404. No se incorporan permisos de edición, validación, pagos o reservas para soporte. La búsqueda existente del portal sigue disponible para ADMINISTRATOR/SUPPORT y añade protección explícita en su servicio. Todas las respuestas usan no-store. No requiere migración de datos.
+
+Validación focalizada: una prueba de integración H2 para indicadores, filtros, CSV, permisos y asociación usuario/propiedad; tres pruebas frontend para filtros/descarga, atención de soporte y guard administrativo. Lint y build local aprobados; revisión de navegador con HTTP simulado en móvil/escritorio. No se hicieron modificaciones de prueba en PostgreSQL ni se ejecutó toda la suite previa.

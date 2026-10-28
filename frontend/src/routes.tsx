@@ -8,6 +8,10 @@ import { StaffHomePage } from './pages/StaffHomePage'
 import { HostHomePage } from './pages/HostHomePage'
 
 export const router = createBrowserRouter([
+  { path: '/hosteo/reports/bookings', lazy: async () => ({ Component: (await import('./pages/OperationsPages')).AdminReportsPage }) },
+  { path: '/support/users', lazy: async () => ({ Component: (await import('./pages/SupportPages')).SupportUsersPage }) },
+  { path: '/support/users/:id', lazy: async () => ({ Component: (await import('./pages/SupportPages')).SupportUserPage }) },
+  { path: '/support/users/:id/properties/:propertyId', lazy: async () => ({ Component: (await import('./pages/SupportPages')).SupportPropertyPage }) },
   { path: '/guest/properties/:id', lazy: async () => ({ Component: (await import('./pages/OperationsPages')).GuestPropertyBookingPage }) },
   { path: '/guest/bookings', lazy: async () => ({ Component: (await import('./pages/OperationsPages')).GuestBookingsPage }) },
   { path: '/guest/bookings/:id', lazy: async () => ({ Component: (await import('./pages/OperationsPages')).GuestBookingDetailPage }) },

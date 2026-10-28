@@ -36,6 +36,7 @@ public class StaffService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR','SUPPORT')")
     public UserPage search(String query, int page) {
         var result = users.findByEmailContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
                 query.strip(), query.strip(), query.strip(), PageRequest.of(page, 10, Sort.by("lastName", "firstName", "id")));

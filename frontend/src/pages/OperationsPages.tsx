@@ -3,6 +3,7 @@ import { RolePage } from '../features/operations/ui'
 import { BookingCreate, BookingList, BookingDetail } from '../features/operations/BookingFlow'
 import { Calendar } from '../features/operations/Calendar'
 import { Overview } from '../features/operations/Overview'
+import { Reports } from '../features/operations/Reports'
 import { PaymentList } from '../features/operations/Payments'
 
 export function GuestPropertyBookingPage() { const { id = '' } = useParams(); return <RolePage role="GUEST">{token => <BookingCreate key={id} token={token} />}</RolePage> }
@@ -17,3 +18,5 @@ export function AdminCalendarPage() { const { id = '' } = useParams(); return <R
 export function HostOperationsPage() { return <RolePage role="HOST">{token => <Overview token={token} role="HOST" />}</RolePage> }
 export function AdminOperationsPage() { return <RolePage role="ADMINISTRATOR">{token => <Overview token={token} role="ADMINISTRATOR" />}</RolePage> }
 export function AdminPaymentsPage() { return <RolePage role="ADMINISTRATOR">{token => <PaymentList token={token} />}</RolePage> }
+
+export function AdminReportsPage() { return <RolePage role="ADMINISTRATOR">{token => <Reports token={token} />}</RolePage> }

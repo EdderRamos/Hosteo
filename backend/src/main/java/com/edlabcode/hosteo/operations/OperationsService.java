@@ -311,6 +311,7 @@ public class OperationsService {
     }
 
     @PreAuthorize("hasAnyRole('HOST','ADMINISTRATOR')")
+    @Transactional(readOnly=true,isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public Summary summary(Jwt jwt) {
         var u = actor(jwt, false, RoleCode.HOST, RoleCode.ADMINISTRATOR);
         Long host = u.getRole().getCode() == RoleCode.HOST ? u.getId() : null;

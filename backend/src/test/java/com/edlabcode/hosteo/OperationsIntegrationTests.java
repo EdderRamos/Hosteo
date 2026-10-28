@@ -89,4 +89,37 @@ class OperationsIntegrationTests {
    var another=property(host);var race=new CountDownLatch(1);var reservation=executor.submit(()->{race.await();return call("POST","/guest/bookings",stay(another,start,end),guest,UUID.randomUUID().toString());});var block=executor.submit(()->{race.await();return call("POST","/admin/properties/"+another.getId()+"/blocks",Map.of("startDate",start.toString(),"endDate",end.toString(),"reason","Concurrent maintenance"),admin,null);});race.countDown();a=reservation.get(15,TimeUnit.SECONDS).statusCode();b=block.get(15,TimeUnit.SECONDS).statusCode();assertTrue((a==200&&b==409)||(a==409&&b==200));assertEquals(1,bookings.conflicts(another.getId(),start,end)+blocks.conflicts(another.getId(),start,end));
   }finally{executor.shutdownNow();}
  }
+
+ @Test void reportsAndSupportQueriesAreFilteredScopedAndReadOnly()throws Exception{
+  property.setTitle("=DANGEROUS()");property=properties.saveAndFlush(property);
+  var first=ok(call("POST","/guest/bookings",stay(property,start,end),guest,UUID.randomUUID().toString()));
+  var another=property(otherHost);another.setCurrency("USD");another=properties.saveAndFlush(another);
+  var second=ok(call("POST","/guest/bookings",stay(another,start,end),otherGuest,UUID.randomUUID().toString()));
+  ok(call("PATCH","/admin/bookings/"+second.get("id").asLong()+"/status",Map.of("version",0,"status","CANCELLED","comment","Report fixture"),admin,null));
+  String report="/admin/reports/bookings?startDate="+start+"&endDate="+start;
+  var data=ok(call("GET",report,null,admin,null));assertEquals(2,data.get("records").get("total").asInt());
+  assertEquals(1,data.get("bookingsByStatus").get("CONFIRMED").asInt());assertEquals(1,data.get("bookingsByStatus").get("CANCELLED").asInt());
+  assertEquals(200,data.get("nonCancelledAmountByCurrency").get("PEN").asInt());assertFalse(data.get("nonCancelledAmountByCurrency").has("USD"));
+  assertEquals(1,ok(call("GET",report+"&status=CONFIRMED",null,admin,null)).get("records").get("total").asInt());
+  assertEquals(0,ok(call("GET",report+"&page=1",null,admin,null)).get("records").get("items").size());
+  assertEquals(400,call("GET","/admin/reports/bookings?startDate="+end+"&endDate="+start,null,admin,null).statusCode());
+  assertEquals(400,call("GET",report+"&status=INVALID",null,admin,null).statusCode());
+  var csv=call("GET","/admin/reports/bookings/export?startDate="+start+"&endDate="+end,null,admin,null);
+  assertEquals(200,csv.statusCode());assertTrue(csv.headers().firstValue("content-type").orElseThrow().contains("text/csv"));assertTrue(csv.body().contains("'"+"=DANGEROUS()"));assertTrue(csv.body().contains(first.get("confirmationCode").asText()));
+  assertEquals("no-store",csv.headers().firstValue("cache-control").orElseThrow());
+  for(User denied:new User[]{host,guest,support})assertEquals(403,call("GET",report,null,denied,null).statusCode());
+  var stats=ok(call("GET","/admin/operations/summary",null,admin,null));assertEquals(2,stats.get("properties").asInt());assertEquals(2,stats.get("bookings").asInt());assertEquals(1,stats.get("bookingsByStatus").get("CANCELLED").asInt());
+  String target="/support/users/"+host.getId();
+  var found=ok(call("GET","/support/users?query=HOST%40test.local",null,support,null));assertEquals(2,found.get("total").asInt());assertFalse(found.toString().contains("passwordHash"));
+  assertEquals(host.getId().longValue(),ok(call("GET",target,null,support,null)).get("id").asLong());
+  var own=ok(call("GET",target+"/properties",null,support,null));assertEquals(1,own.get("total").asInt());assertEquals(property.getId().longValue(),own.get("items").get(0).get("id").asLong());
+  assertEquals(200,call("GET",target+"/properties/"+property.getId(),null,support,null).statusCode());
+  assertEquals(404,call("GET",target+"/properties/"+another.getId(),null,support,null).statusCode());
+  assertEquals(0,ok(call("GET","/support/users/"+guest.getId()+"/properties",null,support,null)).get("total").asInt());
+  assertEquals(404,call("GET","/support/users/999999",null,support,null).statusCode());
+  assertEquals(400,call("GET",target+"/properties?page=-1",null,support,null).statusCode());
+  for(User denied:new User[]{host,guest,admin})assertEquals(403,call("GET",target,null,denied,null).statusCode());
+  assertEquals(403,call("PUT","/host/properties/"+property.getId(),Map.of(),support,null).statusCode());
+  assertEquals(2,bookings.count());assertEquals(2,properties.count());
+ }
 }
