@@ -278,3 +278,23 @@ La portada del anfitrión presenta bienvenida, accesos a registro y disponibilid
 Las propiedades usan SVG decorativos identificados como ilustraciones referenciales; no se presentan fotografías ficticias. No se incorporan conserjería, verificación biométrica, seguros ni funcionalidades ajenas a las HUs. Los indicadores con error no se sustituyen por ceros y cada sección permite reintentar independientemente. La página se carga de forma diferida y conserva el logo.
 
 Verificación: 10 pruebas seleccionadas de navegación y estados vacío/error, lint, compilación local y revisión a 375/430/768/1024/1280/1440 px tanto con fixtures de propiedades/reservas como con la cuenta local de demostración del anfitrión. Se comprobó el acceso desde una tarjeta a su propiedad sin registrar nuevas propiedades, reservas o bloqueos.
+
+### Aviso de propiedades pendientes para el administrador
+
+Al entrar al portal `/hosteo` con rol ADMINISTRATOR o recargarlo, `AdminReviewNotification` consulta la primera página de la bandeja existente y muestra un aviso accesible con el total pendiente, enlace a revisión y cierre manual. No aparece cuando el total es cero ni consulta datos de administración para otros roles. Ante un error de consulta ofrece reintentar, sin presentar la bandeja como vacía.
+
+El cierre se conserva mientras se navega por el portal para el mismo conjunto de solicitudes; una recarga o un nuevo conjunto pendiente permite mostrarlo otra vez. Comparte la clave de TanStack Query con la bandeja, por lo que aprobar/rechazar y su invalidación actualizan el aviso. No incorpora envío de correo, notificaciones push ni cambios de backend. Se carga de forma diferida para administradores y respeta movimiento reducido.
+
+Verificación: 7 pruebas específicas para cantidad, acceso por rol, cierre/recarga, enlace, ausencia de pendientes y recuperación ante error; lint y compilación local. Revisión en navegador a 375/768/1440 px con datos simulados de solo lectura.
+
+### Correspondencia con los BPM y avisos de resultado
+
+`InAppNotice` unifica los avisos del administrador, los resultados de revisión del anfitrión y las confirmaciones de reserva/pago del huésped. `HostReviewNotification` consulta todas las páginas del listado propio existente para no omitir propiedades revisadas antiguas; filtra PUBLISHED/REJECTED con fecha de revisión y permite consultar el motivo y corregir desde el detalle. El aviso aparece al ingresar/refrescar el portal, sin anunciar entrega en tiempo real.
+
+Las confirmaciones de reserva y pago usan exclusivamente datos validados devueltos por el servidor. El pago simulado mantiene su carácter opcional y no realiza cargos. Los mensajes existentes de administración de cuentas, conflictos y consultas vacías de soporte se mantienen. Evidencia y alcance: `development/revision-bpm-notificaciones.md` (9 pruebas de backend en H2 y 36 de frontend).
+
+### Eliminar o archivar una propiedad
+
+En el listado y detalle del anfitrión, el botón de retirada consulta primero la decisión del backend. Solo un borrador sin reservas, bloqueos ni revisiones permite «Eliminar definitivamente»; en los demás casos el diálogo solicita confirmar el archivado y explica que las reservas y pagos se conservan. No envía DELETE al abrir, cancelar o cerrar con Escape. Envía versión y modo confirmado, maneja conflictos y actualiza el listado, el resumen y las notificaciones después de completar la operación.
+
+Las propiedades ARCHIVED muestran su estado y conservan acceso de consulta, con edición/publicación/retirada deshabilitadas. Su calendario no permite crear nuevos bloqueos. No se agrega restauración automática. La confirmación usa un diálogo modal accesible y devuelve el foco al activador cuando sigue existiendo.

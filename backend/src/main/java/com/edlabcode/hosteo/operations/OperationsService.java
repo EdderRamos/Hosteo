@@ -281,7 +281,7 @@ public class OperationsService {
         var p = property(id, false);
         manage(u, p);
         range(start, end, false);
-        return new CalendarView(id, start, end, blocks.calendar(id, start, end).stream().map(BlockView::from).toList(), bookings.occupied(id, start, end).stream().map(b -> new OccupiedRange(b.getCheckIn(), b.getCheckOut(), "BOOKING")).toList());
+        return new CalendarView(id, p.getStatus(), start, end, blocks.calendar(id, start, end).stream().map(BlockView::from).toList(), bookings.occupied(id, start, end).stream().map(b -> new OccupiedRange(b.getCheckIn(), b.getCheckOut(), "BOOKING")).toList());
     }
 
     @Transactional
@@ -290,6 +290,8 @@ public class OperationsService {
         var u = actor(jwt, true, RoleCode.HOST, RoleCode.ADMINISTRATOR);
         var p = property(id, true);
         manage(u, p);
+        if (p.getStatus() == PropertyStatus.ARCHIVED)
+            throw fail(HttpStatus.CONFLICT, "Archived properties do not accept new blocks");
         range(input.startDate(), input.endDate(), true);
         if (!free(id, input.startDate(), input.endDate()))
             throw fail(HttpStatus.CONFLICT, "The range overlaps a booking or an active block");

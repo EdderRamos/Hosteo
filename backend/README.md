@@ -265,3 +265,13 @@ El pool Hikari utiliza por defecto hasta 5 conexiones y mantiene 1 conexión mí
 Si Supabase devuelve `EMAXCONNSESSION` en el pooler de sesiones (puerto 5432), el servicio puede quedar sin conexiones aunque las credenciales sean correctas. La configuración local se ajustó al pooler de transacciones (6543), con `prepareThreshold=0` y `sslmode=require` en `DB_URL`; las credenciales permanecen únicamente en `.env`, ignorado por Git. La URL de un PostgreSQL local puede seguir usando su puerto 5432 habitual.
 
 Se comprobó el incidente con `SELECT 1` (5432 rechazado por límite de 15 clientes; 6543 correcto). Tras el ajuste: health UP, login e identidad HTTP 200 para los cuatro roles de demostración, contraseña incorrecta HTTP 401 y login de soporte desde el navegador correcto. Prueba aislada ejecutada: `AuthIntegrationTests#everyRoleCanLoginAndAccessItsOwnIdentity` con H2.
+
+### Retirar propiedades: eliminación y archivado
+
+Extensión autorizada por el usuario: el anfitrión puede retirar propiedades propias. `GET /api/v1/host/properties/{id}/removal` informa versión, modo (DELETE/ARCHIVE) y existencia de reservas. `DELETE /api/v1/host/properties/{id}?version=...&mode=...` exige confirmar ese modo y la misma versión.
+
+Solo se elimina físicamente un DRAFT sin reservas, bloqueos ni revisiones. Los demás casos se archivan, incluidas solicitudes pendientes retiradas de revisión. ARCHIVED se excluye del catálogo y no admite edición, publicación, reservas o bloqueos nuevos; conserva propiedades, revisiones, bloqueos, reservas y pagos. Las estadías existentes no se cancelan. El calendario permanece disponible para consultar y desactivar bloqueos, e incluye `propertyStatus`.
+
+La operación bloquea primero la cuenta del anfitrión y luego la propiedad; revalida cuenta activa, rol, propiedad, versión y modo, compartiendo el bloqueo de propiedad con reservas y revisiones. Cambios concurrentes devuelven 409; recursos ajenos 404; otros roles 403. La migración `database/migrations/006_property_archiving.sql` amplía la restricción PostgreSQL para ARCHIVED y se aplicó al ambiente local sin modificar registros existentes.
+
+Validación: cuatro pruebas de integración en H2 de eliminación, permisos/versiones, archivado con reservas/pagos, conservación del historial, retiro de pendientes y concurrencia de reservas; 34 pruebas seleccionadas del frontend; lint y build local. La revisión visual emplea respuestas simuladas, sin borrar ni archivar datos reales.

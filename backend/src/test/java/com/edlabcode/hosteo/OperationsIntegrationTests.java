@@ -38,6 +38,43 @@ class OperationsIntegrationTests {
  JsonNode ok(HttpResponse<String> r){assertEquals(200,r.statusCode(),r.body());return mapper.readTree(r.body());}
  Map<String,Object> stay(Property p,LocalDate in,LocalDate out){return Map.of("propertyId",p.getId(),"propertyVersion",p.getVersion(),"checkIn",in.toString(),"checkOut",out.toString(),"guestCount",2);}
  String availablePath(Property p,LocalDate in,LocalDate out){return "/guest/properties/"+p.getId()+"/availability?checkIn="+in+"&checkOut="+out+"&guestCount=2";}
+ @Test void hostDeletesOnlyUnusedDraftsAndRemovalIsScopedAndVersioned() throws Exception {
+  var draft=property(host);draft.setStatus(PropertyStatus.DRAFT);draft=properties.saveAndFlush(draft);
+  String path="/host/properties/"+draft.getId();
+  assertEquals("DELETE",ok(call("GET",path+"/removal",null,host,null)).get("mode").asText());
+  assertEquals(404,call("GET",path+"/removal",null,otherHost,null).statusCode());
+  assertEquals(403,call("DELETE",path+"?version="+draft.getVersion()+"&mode=DELETE",null,guest,null).statusCode());
+  assertEquals(404,call("DELETE",path+"?version="+draft.getVersion()+"&mode=DELETE",null,otherHost,null).statusCode());
+  assertEquals(409,call("DELETE",path+"?version=999&mode=DELETE",null,host,null).statusCode());
+  assertEquals("DELETE",ok(call("DELETE",path+"?version="+draft.getVersion()+"&mode=DELETE",null,host,null)).get("mode").asText());
+  assertFalse(properties.existsById(draft.getId()));
+ }
+ @Test void archivePreservesBookingsAndPaymentsAndPreventsPublicationAndNewReservations() throws Exception {
+  var reservation=ok(call("POST","/guest/bookings",stay(property,start,end),guest,UUID.randomUUID().toString()));long bookingId=reservation.get("id").asLong();
+  ok(call("POST","/guest/bookings/"+bookingId+"/payment",Map.of("version",0),guest,null));
+  String path="/host/properties/"+property.getId();
+  var preview=ok(call("GET",path+"/removal",null,host,null));assertEquals("ARCHIVE",preview.get("mode").asText());assertTrue(preview.get("hasBookings").asBoolean());
+  assertEquals(409,call("DELETE",path+"?version="+property.getVersion()+"&mode=DELETE",null,host,null).statusCode());
+  ok(call("DELETE",path+"?version="+property.getVersion()+"&mode=ARCHIVE",null,host,null));
+  assertEquals(PropertyStatus.ARCHIVED,properties.findById(property.getId()).orElseThrow().getStatus());assertEquals(1,bookings.count());assertEquals(1,payments.count());
+  assertEquals(404,call("GET","/catalog/properties/"+property.getId(),null,null,null).statusCode());
+  assertEquals(0,ok(call("GET","/catalog/properties",null,null,null)).get("total").asInt());
+  assertEquals("ARCHIVED",ok(call("GET",path,null,host,null)).get("status").asText());
+  assertEquals(409,call("POST",path+"/submit",Map.of("version",property.getVersion()+1),host,null).statusCode());
+  assertEquals(409,call("POST","/guest/bookings",stay(property,end,end.plusDays(1)),otherGuest,UUID.randomUUID().toString()).statusCode());
+  assertEquals("APPROVED",ok(call("GET","/guest/bookings/"+bookingId,null,guest,null)).get("payment").get("status").asText());
+  assertEquals("ARCHIVED",ok(call("GET",path+"/calendar?startDate="+start+"&endDate="+end,null,host,null)).get("propertyStatus").asText());
+ }
+ @Test void draftsWithHistoryAreArchivedAndPendingPropertiesCanBeWithdrawn() throws Exception {
+  var draft=property(host);draft.setStatus(PropertyStatus.DRAFT);draft=properties.saveAndFlush(draft);
+  ok(call("POST","/host/properties/"+draft.getId()+"/blocks",Map.of("startDate",start.toString(),"endDate",end.toString(),"reason","Maintenance"),host,null));
+  assertEquals("ARCHIVE",ok(call("GET","/host/properties/"+draft.getId()+"/removal",null,host,null)).get("mode").asText());
+  assertEquals(409,call("DELETE","/host/properties/"+draft.getId()+"?version="+draft.getVersion()+"&mode=DELETE",null,host,null).statusCode());
+  property.setStatus(PropertyStatus.PENDING_REVIEW);property=properties.saveAndFlush(property);
+  ok(call("DELETE","/host/properties/"+property.getId()+"?version="+property.getVersion()+"&mode=ARCHIVE",null,host,null));
+  assertEquals(0,ok(call("GET","/hosteo/properties/pending",null,admin,null)).get("total").asInt());
+  assertEquals(409,call("POST","/hosteo/properties/pending/"+property.getId()+"/decision",Map.of("version",property.getVersion(),"decision","APPROVED"),admin,null).statusCode());
+ }
  @Test void catalogFiltersCombineBeforePaginationAndOnlyExposePublishedProperties() throws Exception {
   var draft=property(host);draft.setStatus(PropertyStatus.DRAFT);properties.saveAndFlush(draft);
   var dollars=property(host);dollars.setCurrency("USD");properties.saveAndFlush(dollars);

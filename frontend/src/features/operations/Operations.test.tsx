@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { QueryProvider } from '../../app/QueryProvider'
@@ -23,9 +23,9 @@ test('essential availability, reservation confirmation and simulated payment jou
   if (url.endsWith('/payment') && options?.method === 'POST') { saved = { ...booking, payment: { id: 1, bookingId: 7, reference: 'd1eb4df6-8e76-4f46-8070-5f16f2bca291', status: 'APPROVED', amount: 100, currency: 'PEN', processedAt: '2026-10-05T00:00:00Z', version: 0 } }; return new Response(JSON.stringify(saved.payment)) }
   return new Response(JSON.stringify(saved))
  }); vi.stubGlobal('fetch', fetch)
- const user = setup(); await user.click(await screen.findByRole('button', { name: 'Consultar disponibilidad' })); await screen.findByText('Fechas disponibles'); await user.click(screen.getByRole('button', { name: 'Solicitar reserva' })); await user.click(screen.getByRole('button', { name: 'Confirmar reserva' })); await screen.findByText('Reserva registrada'); expect(screen.getByText(/91c42855/)).toBeTruthy()
+ const user = setup(); await user.click(await screen.findByRole('button', { name: 'Consultar disponibilidad' })); await screen.findByText('Fechas disponibles'); await user.click(screen.getByRole('button', { name: 'Solicitar reserva' })); await user.click(screen.getByRole('button', { name: 'Confirmar reserva' })); await screen.findByText('Reserva registrada'); expect(within(screen.getByRole('status', { name: 'Notificación de reserva confirmada' })).getByText(/91c42855/)).toBeTruthy()
  const post = fetch.mock.calls.find(call => call[0].endsWith('/guest/bookings') && call[1]?.method === 'POST')!; expect(post[1]?.headers).toHaveProperty('Idempotency-Key'); expect(JSON.parse(String(post[1]?.body))).toMatchObject({ propertyId: 1, propertyVersion: 1 }); expect(JSON.parse(String(post[1]?.body))).not.toHaveProperty('totalAmount')
- await user.click(screen.getByRole('button', { name: 'Registrar pago simulado' })); await user.click(screen.getByRole('button', { name: 'Confirmar pago simulado' })); await screen.findByText(/Aprobado \(simulado\)/)
+ await user.click(screen.getByRole('button', { name: 'Registrar pago simulado' })); await user.click(screen.getByRole('button', { name: 'Confirmar pago simulado' })); await within(await screen.findByRole('status', { name: 'Notificación de pago simulado' })).findByText(/Aprobado \(simulado\)/)
  expect(screen.queryByRole('button', { name: 'Registrar pago simulado' })).toBeNull()
 })
 test('date changes invalidate a quote and reservation conflicts never show confirmation', async () => {

@@ -6,6 +6,9 @@ import com.edlabcode.hosteo.entity.PropertyStatus;
 import com.edlabcode.hosteo.entity.RoleCode;
 import com.edlabcode.hosteo.repository.PropertyRepository;
 import com.edlabcode.hosteo.repository.UserRepository;
+import com.edlabcode.hosteo.repository.BookingRepository;
+import com.edlabcode.hosteo.repository.AvailabilityBlockRepository;
+import com.edlabcode.hosteo.repository.PropertyReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -24,6 +27,46 @@ public class HostPropertyService {
     private final UserRepository users;
     private final PropertyRepository properties;
     private final jakarta.validation.Validator validator;
+    private final BookingRepository bookings;
+    private final AvailabilityBlockRepository blocks;
+    private final PropertyReviewRepository reviews;
+
+    public enum RemovalMode { DELETE, ARCHIVE }
+    public record RemovalPreview(Long propertyId, long version, RemovalMode mode, boolean hasBookings) {}
+    public record RemovalResult(Long propertyId, RemovalMode mode) {}
+
+    private RemovalMode removalMode(Property property) {
+        return property.getStatus() == PropertyStatus.DRAFT && !bookings.existsByPropertyId(property.getId())
+                && !blocks.existsByPropertyId(property.getId()) && !reviews.existsByPropertyId(property.getId())
+                ? RemovalMode.DELETE : RemovalMode.ARCHIVE;
+    }
+
+    @Transactional(readOnly = true)
+    public RemovalPreview removalPreview(String subject, Long id) {
+        var property = properties.findByIdAndHostId(id, Long.valueOf(subject))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
+        if (property.getStatus() == PropertyStatus.ARCHIVED)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Property is already archived");
+        return new RemovalPreview(id, property.getVersion(), removalMode(property), bookings.existsByPropertyId(id));
+    }
+
+    @Transactional
+    public RemovalResult remove(String subject, long revision, Long id, long version, RemovalMode mode) {
+        var host = users.findLockedById(Long.valueOf(subject))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication"));
+        if (!host.isActive() || host.getRoleRevision() != revision)
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication");
+        if (host.getRole().getCode() != RoleCode.HOST)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Host access required");
+        var property = properties.findLockedOwned(id, host.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
+        if (property.getVersion() != version || property.getStatus() == PropertyStatus.ARCHIVED || removalMode(property) != mode)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Property or removal mode changed. Reload before confirming");
+        if (mode == RemovalMode.DELETE) properties.delete(property);
+        else property.setStatus(PropertyStatus.ARCHIVED);
+        properties.flush();
+        return new RemovalResult(id, mode);
+    }
 
     public record Registration(PropertyResponse property, boolean created) {
     }
@@ -76,7 +119,7 @@ public class HostPropertyService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
         if (property.getVersion() != input.version())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Property changed. Reload before saving again");
-        if (property.getStatus() == PropertyStatus.PENDING_REVIEW)
+        if (property.getStatus() == PropertyStatus.PENDING_REVIEW || property.getStatus() == PropertyStatus.ARCHIVED)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Property is under review and cannot be edited");
         var request = input.information();
         if (PropertyResponse.from(property).registration().equals(request)) return PropertyResponse.from(property);

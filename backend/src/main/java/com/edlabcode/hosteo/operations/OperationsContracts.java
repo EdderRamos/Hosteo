@@ -82,7 +82,7 @@ public final class OperationsContracts {
     public record OccupiedRange(LocalDate startDate, LocalDate endDate, String kind) {
     }
 
-    public record CalendarView(Long propertyId, LocalDate startDate, LocalDate endDate, List<BlockView> blocks,
+    public record CalendarView(Long propertyId, PropertyStatus propertyStatus, LocalDate startDate, LocalDate endDate, List<BlockView> blocks,
                                List<OccupiedRange> reservations) {
     }
 

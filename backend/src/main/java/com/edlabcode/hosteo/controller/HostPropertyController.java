@@ -60,6 +60,20 @@ public class HostPropertyController {
                 jwt.getSubject(), jwt.<Number>getClaim("roleRevision").longValue(), id, request));
     }
 
+    @GetMapping("/{id}/removal")
+    @Operation(summary = "Preview whether your property can be deleted or must be archived")
+    public ResponseEntity<HostPropertyService.RemovalPreview> removalPreview(@AuthenticationPrincipal Jwt jwt, @PathVariable @Positive Long id) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(properties.removalPreview(jwt.getSubject(), id));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete an unused draft or archive your property while retaining its history")
+    public ResponseEntity<HostPropertyService.RemovalResult> remove(@AuthenticationPrincipal Jwt jwt, @PathVariable @Positive Long id,
+            @RequestParam @Min(0) long version, @RequestParam HostPropertyService.RemovalMode mode) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(properties.remove(jwt.getSubject(),
+                jwt.<Number>getClaim("roleRevision").longValue(), id, version, mode));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Read your registered property confirmation")
     public ResponseEntity<PropertyResponse> get(@AuthenticationPrincipal Jwt jwt, @PathVariable @Positive Long id) {

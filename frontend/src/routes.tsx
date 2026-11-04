@@ -1,5 +1,6 @@
 import { RouteErrorPage } from './pages/RouteErrorPage'
 import { createBrowserRouter } from 'react-router'
+import { ApplicationLayout } from './app/ApplicationLayout'
 import { ForgotPage } from './pages/AuthPages'
 import { RegisterPage } from './pages/RegisterPage'
 import { LoginPage } from './pages/LoginPage'
@@ -7,7 +8,7 @@ import { ProfilePage } from './pages/ProfilePage'
 import { HomeRedirect } from './pages/HomeRedirect'
 import { StaffHomePage } from './pages/StaffHomePage'
 
-export const router = createBrowserRouter([
+export const router = createBrowserRouter([{ Component: ApplicationLayout, children: [
   { path: '/support/bookings', lazy: async () => ({ Component: (await import('./pages/SupportOperationsPages')).SupportBookingsPage }) },
   { path: '/support/bookings/:id', lazy: async () => ({ Component: (await import('./pages/SupportOperationsPages')).SupportBookingPage }) },
   { path: '/support/operations', lazy: async () => ({ Component: (await import('./pages/SupportOperationsPages')).SupportOperationalPage }) },
@@ -43,4 +44,4 @@ export const router = createBrowserRouter([
   { path: '/login', Component: LoginPage },
   { path: '/register', Component: RegisterPage },
   { path: '/forgot-password', Component: ForgotPage },
-].map(route => ({ ...route, ErrorBoundary: RouteErrorPage })))
+].map(route => ({ ...route, ErrorBoundary: RouteErrorPage })) }])

@@ -15,6 +15,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
+    boolean existsByPropertyId(Long propertyId);
+
     Optional<Booking> findByGuestIdAndRegistrationKey(Long guestId, UUID registrationKey);
 
     @Query("select count(b) from Booking b where b.property.id=:property and b.status<>com.edlabcode.hosteo.entity.BookingStatus.CANCELLED and b.checkIn<:end and b.checkOut>:start")

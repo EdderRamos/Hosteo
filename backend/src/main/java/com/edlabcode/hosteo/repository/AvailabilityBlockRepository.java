@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface AvailabilityBlockRepository extends JpaRepository<AvailabilityBlock, Long> {
+    boolean existsByPropertyId(Long propertyId);
+
     @Query("select count(b) from AvailabilityBlock b where b.property.id=:property and b.active=true and b.startDate<:end and b.endDate>:start")
     long conflicts(@Param("property") Long property, @Param("start") LocalDate start, @Param("end") LocalDate end);
 

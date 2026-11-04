@@ -6,5 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface PropertyReviewRepository extends JpaRepository<PropertyReview, Long> {
+    boolean existsByPropertyId(Long propertyId);
+
     Optional<PropertyReview> findByPropertyIdAndPropertyVersion(Long propertyId, long propertyVersion);
 }
